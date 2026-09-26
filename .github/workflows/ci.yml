@@ -18,11 +18,18 @@ permissions:
 
 jobs:
   tap:
-    # Pinned to tap main after v0.2.0 (Renovate does not track it): the validation logic must
+    # Pinned to a tap main commit, which Renovate proposes moving (org-bots preset): the validation logic must
     # know the manifest keys the floor's core knows — the [falsifiers] table arrived with the
     # reconciliation primitives this plugin adopts (github-core#151) — and must survive the
     # conformance lane's venv, which holds no plugin at all (tap#666, fixed after v0.2.0). The
     # harness itself is still core at the tag the manifest floor names.
+    # A job-level block replaces the top-level one, so it restates contents: read. GitHub checks
+    # every permission a called workflow's jobs declare before any job starts; plugin-ci from
+    # tap#822 on uploads its dependency scan as SARIF, which needs security-events: write. This
+    # grants upload to this repo's Security tab only, never code write.
+    permissions:
+      contents: read
+      security-events: write
     uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@8d0ef6c93908f01ca172bb6d019584a547dd83ff
     with:
       plugin_slug: github_core
