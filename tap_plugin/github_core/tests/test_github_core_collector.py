@@ -1082,6 +1082,7 @@ class TestReadinessSummaryNamesTheScopeItWalked:
 
         base: dict[str, Any] = {
             "repo_access_ok": True,
+            "owner_walk_failed": False,
             "explicit_repos": 0,
             "owner": "unified-systems-com",
             "enumerated": None,
@@ -1122,3 +1123,25 @@ class TestReadinessSummaryNamesTheScopeItWalked:
         summary = self._summary(repo_access_ok=False, explicit_repos=2, enumerated=34)
         assert "cannot access one or more configured repos" in summary
         assert "34" not in summary
+
+    def test_a_failed_owner_walk_is_not_reported_as_an_empty_scope(self) -> None:
+        """A raising owner walk leaves `enumerated` None, which must not read as "no owner set".
+
+        Two different situations both leave the count unset: no owner was ever configured, and an
+        owner walk that raised. Only the first is an empty scope. The ordering that keeps them
+        apart is that a failed walk also clears repo_access_ok, so the failure arm answers first —
+        which is easy to break by reordering the branches, hence this test.
+        """
+        summary = self._summary(
+            repo_access_ok=False, owner_walk_failed=True, owner="unified-systems-com", enumerated=None
+        )
+        assert "nothing is in scope" not in summary
+        assert "no owner" not in summary
+
+    def test_a_failed_owner_walk_does_not_blame_configured_repos(self) -> None:
+        """An account-scope failure names the owner, not repos the credential never had."""
+        summary = self._summary(
+            repo_access_ok=False, owner_walk_failed=True, owner="unified-systems-com", enumerated=None
+        )
+        assert "cannot enumerate repositories under unified-systems-com" in summary
+        assert "configured repos" not in summary

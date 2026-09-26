@@ -783,6 +783,9 @@ class GithubCollector(CollectorBase):
         # tell those two apart, because one is a misconfiguration and the other is an empty org.
         enumerated: int | None = None
         enumeration_complete = True
+        # Distinct from repo_access_ok: an owner walk that FAILED is not the same failure as a
+        # configured repo being unreachable, and the summary must not report one as the other.
+        owner_walk_failed = False
         if owner is not None:
             try:
                 try:
@@ -799,6 +802,7 @@ class GithubCollector(CollectorBase):
                     )
             except GithubAPIError as exc:
                 repo_access_ok = False
+                owner_walk_failed = True
                 checks.append(
                     check_fail(
                         f"GITHUB_OWNER_ACCESS:{owner}",
@@ -855,6 +859,7 @@ class GithubCollector(CollectorBase):
             checks,
             summary=_readiness_summary(
                 repo_access_ok=repo_access_ok,
+                owner_walk_failed=owner_walk_failed,
                 explicit_repos=len(repos),
                 owner=owner,
                 enumerated=enumerated,
@@ -7064,6 +7069,7 @@ class GithubCollector(CollectorBase):
 def _readiness_summary(
     *,
     repo_access_ok: bool,
+    owner_walk_failed: bool = False,
     explicit_repos: int,
     owner: str | None,
     enumerated: int | None,
@@ -7077,6 +7083,13 @@ def _readiness_summary(
     while the run beside it proved the opposite. The count now comes from whichever scope the run
     actually walked, and a genuinely empty scope says so in words rather than rendering as a zero.
     """
+    if owner_walk_failed:
+        # Named separately because the generic repo message below would blame "configured repos"
+        # for an account-scope failure, and an owner-scoped credential has none configured.
+        return (
+            f"GitHub Core collector cannot enumerate repositories under {owner}; the credential's "
+            "account scope is unreadable."
+        )
     if not repo_access_ok:
         return "GitHub Core collector credential cannot access one or more configured repos."
     if explicit_repos:
