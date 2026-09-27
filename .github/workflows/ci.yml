@@ -30,7 +30,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@3ac6fdb810835f81102ba5db4b2ec4a5aebd7795
+    uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@210409a20ad44e6f747f01bf6da9ccd2cbc04015
     with:
       plugin_slug: github_core
     secrets:
