@@ -24,6 +24,6 @@ jobs:
       contents: read
       id-token: write
       attestations: write
-    uses: unified-systems-com/tap/.github/workflows/plugin-release-sbom.yml@210409a20ad44e6f747f01bf6da9ccd2cbc04015 # main
+    uses: unified-systems-com/tap/.github/workflows/plugin-release-sbom.yml@1ffb2417032350ec1d31f0af400c25b225ee66ca # main
     with:
       plugin_slug: github_core
