@@ -53,7 +53,7 @@ Observed on the unified-systems-com grid on 2026-09-02 (pre-edge, from `configur
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `TRIGGERS_WORKFLOW` `{trigger_event, conclusion_filter}`; the `conclusion_filter` drop is recorded there on 2026-09-02.
-- unified-systems-com/tap-plugin-github-core#52 (2026-09-02) — the bake issue: the dropped parser key, direction, done-test.
+- unified-systems-com/github-core-tap#52 (2026-09-02) — the bake issue: the dropped parser key, direction, done-test.
 - unified-systems-com/tap `specs/spec-cicd-ai-review.md` (2026-08) — the capture → review handoff, our own instance of the shape.
 - `git-serious-tap` *The Shape of a Pipeline* §6 (2026-08) — the untrusted→privileged handoff as one of the two invisible structures.
 

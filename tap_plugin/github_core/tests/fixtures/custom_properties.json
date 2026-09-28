@@ -109,7 +109,7 @@
     {
       "repository_id": 1288688633,
       "repository_name": "tap-plugin-github-core",
-      "repository_full_name": "unified-systems-com/tap-plugin-github-core",
+      "repository_full_name": "unified-systems-com/github-core-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -217,7 +217,7 @@
     {
       "repository_id": 1288688619,
       "repository_name": "tap-plugin-sigstore-core",
-      "repository_full_name": "unified-systems-com/tap-plugin-sigstore-core",
+      "repository_full_name": "unified-systems-com/sigstore-core-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -244,7 +244,7 @@
     {
       "repository_id": 1288688607,
       "repository_name": "tap-plugin-roscale",
-      "repository_full_name": "unified-systems-com/tap-plugin-roscale",
+      "repository_full_name": "unified-systems-com/roscale-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -271,7 +271,7 @@
     {
       "repository_id": 1295524557,
       "repository_name": "tap-plugin-identity-core",
-      "repository_full_name": "unified-systems-com/tap-plugin-identity-core",
+      "repository_full_name": "unified-systems-com/identity-core-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -298,7 +298,7 @@
     {
       "repository_id": 1207367981,
       "repository_name": "tap-plugin-computing-core",
-      "repository_full_name": "unified-systems-com/tap-plugin-computing-core",
+      "repository_full_name": "unified-systems-com/computing-core-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -325,7 +325,7 @@
     {
       "repository_id": 1295527709,
       "repository_name": "tap-plugin-compliance-core",
-      "repository_full_name": "unified-systems-com/tap-plugin-compliance-core",
+      "repository_full_name": "unified-systems-com/compliance-core-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -352,7 +352,7 @@
     {
       "repository_id": 1236984573,
       "repository_name": "tap-plugin-administrivia",
-      "repository_full_name": "unified-systems-com/tap-plugin-administrivia",
+      "repository_full_name": "unified-systems-com/administrivia-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -379,7 +379,7 @@
     {
       "repository_id": 1289330382,
       "repository_name": "tap-plugin-gryphon-playground",
-      "repository_full_name": "unified-systems-com/tap-plugin-gryphon-playground",
+      "repository_full_name": "unified-systems-com/gryphon-playground-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -406,7 +406,7 @@
     {
       "repository_id": 1218311497,
       "repository_name": "tap-plugin-fedramp-20x-ksi",
-      "repository_full_name": "unified-systems-com/tap-plugin-fedramp-20x-ksi",
+      "repository_full_name": "unified-systems-com/fedramp-20x-ksi-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -433,7 +433,7 @@
     {
       "repository_id": 1307797270,
       "repository_name": "tap-plugin-samsite",
-      "repository_full_name": "unified-systems-com/tap-plugin-samsite",
+      "repository_full_name": "unified-systems-com/samsite-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -460,7 +460,7 @@
     {
       "repository_id": 1288688654,
       "repository_name": "tap-plugin-aws-core",
-      "repository_full_name": "unified-systems-com/tap-plugin-aws-core",
+      "repository_full_name": "unified-systems-com/aws-core-tap",
       "properties": [
         {
           "property_name": "criticality",
@@ -676,7 +676,7 @@
     {
       "repository_id": 1289329227,
       "repository_name": "tap-plugin-grid-fixtures",
-      "repository_full_name": "unified-systems-com/tap-plugin-grid-fixtures",
+      "repository_full_name": "unified-systems-com/grid-fixtures-tap",
       "properties": [
         {
           "property_name": "criticality",

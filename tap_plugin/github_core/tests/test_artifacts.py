@@ -2,7 +2,7 @@
 (req-github-core-artifacts).
 
 Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-artifacts)
-Issue: unified-systems-com/tap-plugin-github-core#55
+Issue: unified-systems-com/github-core-tap#55
 
 The fixture items are shaped like the executed call on 2026-09-02 (`GET /repos/{o}/{r}/actions/
 artifacts` on unified-systems-com/tap: 3,831 artifacts, `digest`, `expired`, `workflow_run`).

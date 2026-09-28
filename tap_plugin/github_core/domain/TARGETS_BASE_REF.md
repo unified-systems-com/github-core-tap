@@ -37,7 +37,7 @@ Emitted from the config-layer read; present when the base ref landed in the same
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#82 (2026-09-08) — the bake issue.
+- unified-systems-com/github-core-tap#82 (2026-09-08) — the bake issue.
 - `git-serious-tap/specs/spec-git-serious-why-not-merging.md` (2026-09-02) — the gate-chain requirement this edge starts.
 
 ## Endpoints

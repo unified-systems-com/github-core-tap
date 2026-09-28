@@ -45,7 +45,7 @@ Derived from two reads the run already makes — the installation chosen at toke
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#145 (2026-09-14) — the build issue.
+- unified-systems-com/github-core-tap#145 (2026-09-14) — the build issue.
 - [`collection_scope`](collection_scope.md) — the source node, and the recorded grant it compares against.
 - `specs/spec-github-core-v0.md` (`req-github-core-app-installations`) — the target node and which endpoint answers for it.
 - `INSTALLED_ON_ACCOUNT` (`edges/INSTALLED_ON_ACCOUNT.edge.json`) — the installation's own join to its account, kept distinct.

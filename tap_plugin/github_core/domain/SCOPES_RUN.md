@@ -44,7 +44,7 @@ Emitted with the scope node, in the scope's own batch, before the walk — one e
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#145 (2026-09-14) — the build issue; George's ruling that the scope is a node on the operation side, joined to the run rather than written on it.
+- unified-systems-com/github-core-tap#145 (2026-09-14) — the build issue; George's ruling that the scope is a node on the operation side, joined to the run rather than written on it.
 - [`collection_scope`](collection_scope.md) — the source node, and why it is a node.
 - `PRODUCED_BATCH` (tap_cares) — the run's OTHER outbound join, to what it imported; kept distinct on purpose.
 

@@ -54,7 +54,7 @@ Organizations only: a user account has no schema endpoint, so for one the surfac
 
 - GitHub Engineering, "How GitHub gave every repository a durable owner" (2026-07) — custom properties (`ownership-type`, `ownership-name`) as the ownership record, validated by an App; the pattern this node exists to read.
 - unified-systems-com/git-serious-double-tap#2 (2026-09-08) — the five properties declared on our own organization and the populate-first rule: no property is `required`, because a default silently asserts ownership or importance.
-- unified-systems-com/tap-plugin-github-core#77 (2026-09-08) — the collection issue: unset, unobservable and observed kept distinct.
+- unified-systems-com/github-core-tap#77 (2026-09-08) — the collection issue: unset, unobservable and observed kept distinct.
 - `specs/spec-github-core-app-permissions.md` (2026-09-02) — the ledger's case for the custom-property keys under the security axis.
 - [`github_ruleset`](github_ruleset.md) § Observability (2026-08-27) — the three-state ruling this node applies to values.
 
