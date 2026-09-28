@@ -108,6 +108,7 @@ github_core__github_repository = "tap_plugin.github_core.falsifiers.RepositoryFa
 github_core__github_workflow = "tap_plugin.github_core.falsifiers.WorkflowFalsifier"
 github_core__workflow_job = "tap_plugin.github_core.falsifiers.WorkflowJobFalsifier"
 github_core__github_environment = "tap_plugin.github_core.falsifiers.EnvironmentFalsifier"
+github_core__actions_secret = "tap_plugin.github_core.falsifiers.ActionsSecretFalsifier"
 
 [grift]
 repo-landing-page = "grift/repo-landing-page.grift.json"

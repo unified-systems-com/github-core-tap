@@ -4982,10 +4982,22 @@ class GithubCollector(CollectorBase):
         credential was refused" into "this repository has no secrets"; a listing that stopped at
         the page cap does the same thing more quietly, because the names it did return make it
         look like it worked.
+
+        The REPOSITORY-scope listing is also a completeness surface (`repository.secrets`,
+        `DEFINES_SECRET__github_core`, github-core#866): `GithubRepository.CONTAINMENT_EDGES`
+        names that edge type, and without a recorded surface a repository-scoped secret would
+        never become a retirement candidate no matter what the model declares — candidate
+        derivation fans out from a SURFACE, not from the containment declaration alone
+        (`tap_grid.candidates._resolve_parent` reads the surface's `edge_type`, but nothing
+        calls it without a surface to walk). Environment and organisation scope stay
+        uninstrumented here: neither `GithubEnvironment` nor `GithubAccount` declares
+        `DEFINES_SECRET__github_core` as containment, so a surface for either would have no
+        containment declaration to satisfy and candidate derivation would just skip it.
         """
         scopes_read: list[str] = []
         out: dict[str, list[Any]] = {}
 
+        secrets_first = datetime.now(UTC)
         listing = self._secret_rows(
             client,
             f"/repos/{full_name}/actions/secrets",
@@ -4993,6 +5005,22 @@ class GithubCollector(CollectorBase):
             "SECRETS_UNREADABLE",
             f"Repository secret names inaccessible for {full_name}",
             {"repo": full_name},
+        )
+        self._note_listing(
+            "repository.secrets",
+            "DEFINES_SECRET__github_core",
+            repo_uuid,
+            secrets_first,
+            complete=listing.complete,
+            count=len(listing.rows),
+            reasons=(
+                {}
+                if listing.complete
+                else {
+                    "enumeration_complete": "not_read_or_truncated: the repository secrets listing was refused, "
+                    "not applicable, or stopped before the end of the Link chain"
+                }
+            ),
         )
         # The rows are emitted whichever way completeness went — a secret we SAW exists, and a
         # truncated page does not make the names before it imaginary. Only the claim "this scope

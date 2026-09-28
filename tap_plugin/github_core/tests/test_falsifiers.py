@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 from tap_plugin.github_core.collectors.github_collector.api_client import GithubAPIError
 from tap_plugin.github_core.falsifiers import (
+    ActionsSecretFalsifier,
     EnvironmentFalsifier,
     RepositoryFalsifier,
     WorkflowFalsifier,
@@ -56,6 +57,7 @@ REPOSITORY = "github_core__github_repository"
 WORKFLOW = "github_core__github_workflow"
 JOB = "github_core__workflow_job"
 ENVIRONMENT = "github_core__github_environment"
+SECRET = "github_core__actions_secret"
 
 WORKFLOW_YAML = (
     "name: ci\non: [push]\njobs:\n"
@@ -326,6 +328,137 @@ class TestEnvironmentFalsifier:
         fake = FakeGithub({"/repos/acme/app/environments/prod%2Feu%20west": {"id": 7, "name": "prod/eu west"}})
         [verdict] = EnvironmentFalsifier(client=fake, reach=_reach()).batch_falsify([candidate], _context())
         assert verdict.verdict == PRESENT_AT_PROBE
+
+
+@pytest.mark.django_db
+class TestActionsSecretFalsifier:
+    """Shape B with no stable id (github-core#866): GET .../actions/secrets/{name} at one of
+    three URL shapes named by `scope`; presence is the only thing compared.
+
+    No REIDENTIFIED case here (unlike the other three falsifiers' four-case proof): the source
+    reports nothing independent of the name the probe asked for, so REIDENTIFIED is not one of
+    the reachable verdicts for this type — proved directly below rather than assumed.
+    """
+
+    @staticmethod
+    def _secret(
+        scope: str,
+        name: str,
+        *,
+        owner_login: str = "acme",
+        full_name: str = "",
+        environment_name: str = "",
+        parent: uuid.UUID | None = None,
+    ) -> Candidate:
+        sid = _create(
+            SECRET,
+            {
+                "scope": scope,
+                "owner_login": owner_login,
+                "full_name": full_name,
+                "environment_name": environment_name,
+                "name": name,
+            },
+        )
+        return _candidate(sid, SECRET, parent)
+
+    @pytest.mark.spec("req-grid-reconcile-falsifier-6")
+    def test_repository_scope_present_dropped_and_forbidden(self) -> None:
+        repo = _create(REPOSITORY, {"full_name": "acme/app", "github_id": 10})
+        fake = FakeGithub()
+        present = self._secret("repository", "HARNESS_PAT", full_name="acme/app", parent=repo)
+        fake.answer(
+            "/repos/acme/app/actions/secrets/HARNESS_PAT",
+            {"name": "harness_pat", "created_at": "2024-01-01T00:00:00Z"},
+        )
+        dropped = self._secret("repository", "STALE_TOKEN", full_name="acme/app", parent=repo)
+        fake.refuse("/repos/acme/app/actions/secrets/STALE_TOKEN", 404)
+        # The tie-breaker for the 404: a probe of the containing repository (github-core#157).
+        fake.answer("/repos/acme/app", {"id": 10, "full_name": "acme/app", "owner": {"login": "acme"}})
+        forbidden = self._secret("repository", "VAULT_KEY", full_name="acme/app", parent=repo)
+        fake.refuse("/repos/acme/app/actions/secrets/VAULT_KEY", 403)
+
+        falsifier = ActionsSecretFalsifier(client=fake, reach=_reach())
+        verdicts = {v.entity_id: v for v in falsifier.batch_falsify([present, dropped, forbidden], _context())}
+        present_v, dropped_v, forbidden_v = (
+            verdicts[present.entity_id],
+            verdicts[dropped.entity_id],
+            verdicts[forbidden.entity_id],
+        )
+        assert present_v.verdict == PRESENT_AT_PROBE
+        assert present_v.expected == {"source_id": "HARNESS_PAT", "owner": None, "name": None}
+        assert dropped_v.verdict == DROPPED_FROM_OBSERVATION
+        assert (forbidden_v.verdict, forbidden_v.reason) == (UNDETERMINED, "forbidden")
+        for verdict in (present_v, dropped_v, forbidden_v):
+            assert unsupported(verdict) is None, unsupported(verdict)
+
+    def test_repository_scope_not_found_out_of_reach_is_undetermined(self) -> None:
+        """The credential's reach names `acme`, not `otherco`: a 404 there proves nothing
+        (github-core#157) and must not be read as the secret being gone."""
+        candidate = self._secret("repository", "GONE", full_name="otherco/app")
+        fake = FakeGithub()
+        fake.refuse("/repos/otherco/app/actions/secrets/GONE", 404)
+        [verdict] = ActionsSecretFalsifier(client=fake, reach=_reach()).batch_falsify([candidate], _context())
+        assert (verdict.verdict, verdict.reason) == (UNDETERMINED, "scope_unknown")
+
+    @pytest.mark.spec("req-grid-reconcile-falsifier-6")
+    def test_environment_scope_present_and_dropped(self) -> None:
+        env = _create(ENVIRONMENT, {"full_name": "acme/app", "name": "production", "environment_id": 1})
+        fake = FakeGithub()
+        present = self._secret(
+            "environment", "DEPLOY_KEY", full_name="acme/app", environment_name="production", parent=env
+        )
+        fake.answer("/repos/acme/app/environments/production/secrets/DEPLOY_KEY", {"name": "deploy_key"})
+        dropped = self._secret(
+            "environment", "OLD_KEY", full_name="acme/app", environment_name="production", parent=env
+        )
+        fake.refuse("/repos/acme/app/environments/production/secrets/OLD_KEY", 404)
+        fake.answer("/repos/acme/app", {"id": 10, "full_name": "acme/app", "owner": {"login": "acme"}})
+
+        verdicts = {
+            v.entity_id: v
+            for v in ActionsSecretFalsifier(client=fake, reach=_reach()).batch_falsify(
+                [present, dropped], _context()
+            )
+        }
+        assert verdicts[present.entity_id].verdict == PRESENT_AT_PROBE
+        assert verdicts[dropped.entity_id].verdict == DROPPED_FROM_OBSERVATION
+
+    @pytest.mark.spec("req-grid-reconcile-falsifier-6")
+    def test_organization_scope_present_and_never_confirmable_dropped(self) -> None:
+        """An organisation secret has no containing repository: `Reach.holds_repository` can
+        never say yes for an empty locator, so its absence can never be confirmed gone with
+        today's reach model — proved here rather than assumed (github-core#157)."""
+        account = _create(ACCOUNT, {"login": "acme"})
+        present = self._secret("organization", "OPENAI_API_KEY", owner_login="acme", parent=account)
+        fake = FakeGithub({"/orgs/acme/actions/secrets/OPENAI_API_KEY": {"name": "OPENAI_API_KEY"}})
+        [verdict] = ActionsSecretFalsifier(client=fake, reach=_reach()).batch_falsify([present], _context())
+        assert verdict.verdict == PRESENT_AT_PROBE
+
+        dropped = self._secret("organization", "XAI_API_KEY", owner_login="acme", parent=account)
+        fake2 = FakeGithub()
+        fake2.refuse("/orgs/acme/actions/secrets/XAI_API_KEY", 404)
+        [verdict2] = ActionsSecretFalsifier(client=fake2, reach=_reach()).batch_falsify([dropped], _context())
+        assert (verdict2.verdict, verdict2.reason) == (UNDETERMINED, "scope_unknown")
+        assert fake2.calls == ["/orgs/acme/actions/secrets/XAI_API_KEY"], "no parent to probe for an account secret"
+
+    def test_a_differently_shaped_payload_is_never_reidentification(self) -> None:
+        """The probe's identity claim is the name it asked for, never anything the payload
+        reports independently — so REIDENTIFIED cannot be reached for this type, whatever the
+        source echoes back."""
+        candidate = self._secret("repository", "ROTATED_KEY", full_name="acme/app")
+        fake = FakeGithub(
+            {"/repos/acme/app/actions/secrets/ROTATED_KEY": {"name": "unrelated-casing", "id": 999}}
+        )
+        [verdict] = ActionsSecretFalsifier(client=fake, reach=_reach()).batch_falsify([candidate], _context())
+        assert verdict.verdict == PRESENT_AT_PROBE
+        assert unsupported(verdict) is None
+
+    def test_a_row_that_cannot_be_read_is_not_answered(self) -> None:
+        [verdict] = ActionsSecretFalsifier(client=FakeGithub(), reach=_reach()).batch_falsify(
+            [_candidate(uuid.uuid4(), SECRET, None)], _context()
+        )
+        assert (verdict.verdict, verdict.reason) == (UNDETERMINED, "errored")
 
 
 class TestProbeStatus:

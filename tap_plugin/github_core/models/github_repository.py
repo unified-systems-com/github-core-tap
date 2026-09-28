@@ -17,8 +17,15 @@ class GithubRepository(BaseModel):
     compares the stable numeric id and the owner login before anything is concluded
     (``tap_plugin.github_core.falsifiers.RepositoryFalsifier``).
 
-    A repository CONTAINS its workflow files (``DEFINES_WORKFLOW``, shape A: the file at HEAD)
-    and its deployment environments (``DECLARES_ENVIRONMENT``, shape B). Two relations #14
+    A repository CONTAINS its workflow files (``DEFINES_WORKFLOW``, shape A: the file at HEAD),
+    its deployment environments (``DECLARES_ENVIRONMENT``, shape B), and the Actions secrets
+    declared directly on IT (``DEFINES_SECRET``, shape B with no stable id —
+    ``tap_plugin.github_core.falsifiers.ActionsSecretFalsifier``, github-core#866). Only
+    REPOSITORY-scoped secrets are named here: an organisation secret and an environment secret
+    are ``DEFINES_SECRET`` edges sourced from the account and the environment respectively, not
+    from this repository, and ``GithubAccount`` / ``GithubEnvironment`` both document those as
+    references rather than containment — a repository going away does not end an organisation's
+    secret, and this model does not speak for what an environment declares. Two relations #14
     lists under the repository are deliberately NOT declared here:
 
     - rulesets: ``PROTECTS_REPOSITORY`` points ruleset -> repository, and one organization
@@ -27,8 +34,8 @@ class GithubRepository(BaseModel):
       ``DECLARES_REF`` — that containment is git_core's declaration, not this hosting record's.
 
     Runs (``EXECUTES_WORKFLOW`` is run -> workflow, shape C), releases, artifacts, caches,
-    secrets, alerts and pull requests are references or immutable events: none retires with
-    the repository through the cascade, and none is a candidate surface.
+    alerts and pull requests are references or immutable events: none retires with the
+    repository through the cascade, and none is a candidate surface.
 
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-models)
     """
@@ -68,12 +75,17 @@ class GithubRepository(BaseModel):
             "nodes": [{"type": "github_core__github_environment"}],
             "edges": [{"type": "DECLARES_ENVIRONMENT__github_core"}],
         },
+        {"nodes": [{"type": "github_core__actions_secret"}], "edges": [{"type": "DEFINES_SECRET__github_core"}]},
     ]
-    #: What retires with this repository, and the two listing surfaces the collector records
-    #: completeness for under it: `repository.workflows` and `repository.environments`.
+    #: What retires with this repository, and the three listing surfaces the collector records
+    #: completeness for under it: `repository.workflows`, `repository.environments` and
+    #: `repository.secrets`. The last is the REPOSITORY-scope secret listing only — the
+    #: `DEFINES_SECRET` edges an environment or the account itself sources are that entity's
+    #: business, not this one's (github-core#866).
     CONTAINMENT_EDGES: ClassVar[tuple[str, ...]] = (
         "DEFINES_WORKFLOW__github_core",
         "DECLARES_ENVIRONMENT__github_core",
+        "DEFINES_SECRET__github_core",
     )
 
     FIELD_CRUD_SCHEMA: ClassVar[dict[str, Any]] = {
