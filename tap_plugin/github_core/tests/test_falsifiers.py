@@ -57,7 +57,7 @@ REPOSITORY = "github_core__github_repository"
 WORKFLOW = "github_core__github_workflow"
 JOB = "github_core__workflow_job"
 ENVIRONMENT = "github_core__github_environment"
-SECRET = "github_core__actions_secret"
+ACTIONS_SECRET = "github_core__actions_secret"
 
 WORKFLOW_YAML = (
     "name: ci\non: [push]\njobs:\n"
@@ -351,7 +351,7 @@ class TestActionsSecretFalsifier:
         parent: uuid.UUID | None = None,
     ) -> Candidate:
         sid = _create(
-            SECRET,
+            ACTIONS_SECRET,
             {
                 "scope": scope,
                 "owner_login": owner_login,
@@ -360,7 +360,7 @@ class TestActionsSecretFalsifier:
                 "name": name,
             },
         )
-        return _candidate(sid, SECRET, parent)
+        return _candidate(sid, ACTIONS_SECRET, parent)
 
     @pytest.mark.spec("req-grid-reconcile-falsifier-6")
     def test_repository_scope_present_dropped_and_forbidden(self) -> None:
@@ -456,7 +456,7 @@ class TestActionsSecretFalsifier:
 
     def test_a_row_that_cannot_be_read_is_not_answered(self) -> None:
         [verdict] = ActionsSecretFalsifier(client=FakeGithub(), reach=_reach()).batch_falsify(
-            [_candidate(uuid.uuid4(), SECRET, None)], _context()
+            [_candidate(uuid.uuid4(), ACTIONS_SECRET, None)], _context()
         )
         assert (verdict.verdict, verdict.reason) == (UNDETERMINED, "errored")
 
