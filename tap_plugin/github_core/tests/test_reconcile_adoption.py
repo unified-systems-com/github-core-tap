@@ -91,6 +91,7 @@ class TestOneRunAgainstTheFakeGithub:
             "account.repositories",
             "repository.workflows",
             "repository.environments",
+            "repository.secrets",
             "workflow.jobs",
         }
         repos = by_relation[("account.repositories", _assigned(GithubAccount, login=OWNER))]
@@ -98,12 +99,16 @@ class TestOneRunAgainstTheFakeGithub:
         environments = by_relation[
             ("repository.environments", _assigned(GithubRepository, full_name=REPO))
         ]
+        secrets = by_relation[("repository.secrets", _assigned(GithubRepository, full_name=REPO))]
         jobs = by_relation[
             ("workflow.jobs", _assigned(GithubWorkflow, full_name=REPO, workflow_id=100))
         ]
         assert repos["edge_type"] == "OWNS_REPO__github_core" and repos["count_observed"] == 1
         assert workflows["edge_type"] == "DEFINES_WORKFLOW__github_core" and workflows["count_observed"] == 1
         assert environments["edge_type"] == "DECLARES_ENVIRONMENT__github_core" and environments["count_observed"] == 1
+        # The fake estate declares no secrets at all; the repository-scope listing is still a
+        # completeness surface — it was read to the end and found nothing, which is a fact.
+        assert secrets["edge_type"] == "DEFINES_SECRET__github_core" and secrets["count_observed"] == 0
         assert jobs["edge_type"] == "DEFINES_JOB__github_core" and jobs["count_observed"] == 1
         for surface in statement["surfaces"]:
             # Every listing cites the collection batch; the recorder derived `applied` from its commit.
@@ -120,6 +125,7 @@ class TestOneRunAgainstTheFakeGithub:
             ("account.repositories", "derived"),
             ("repository.workflows", "derived"),
             ("repository.environments", "derived"),
+            ("repository.secrets", "derived"),
             ("workflow.jobs", "derived"),
         }
         assert all(e["candidates"] == [] for e in record["surfaces"])
@@ -174,7 +180,7 @@ class TestAFailedRepositoryDoesNotLeaveAnAdmittedSurface:
         assert failed["enumeration_complete"] is True, "the listing itself was read to the end"
         assert failed["admitted"] is False and failed["reconcilable"] is False
         assert failed["reasons"]["admitted"].startswith("collection_failed: acme/broken")
-        for relation in ("repository.environments", "workflow.jobs"):
+        for relation in ("repository.environments", "repository.secrets", "workflow.jobs"):
             broken_surfaces = [s for k, s in by_key.items() if k[0] == relation and s["admitted"] is False]
             assert broken_surfaces, f"{relation}: the failed repository's surface is withdrawn too"
         account = by_key[("account.repositories", _assigned(GithubAccount, login=OWNER))]

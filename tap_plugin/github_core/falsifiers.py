@@ -25,6 +25,19 @@ Which types get one follows the shape table in github-core#14:
   credential's view", which is all the listing ever claimed), and a found object is compared
   by its stable numeric id and — for a repository — by its owner login, so a transfer ends
   the ownership edge rather than retiring the repository.
+- **Shape B, no stable id** — ``actions_secret`` (github-core#866, the deletion-detection half
+  of the duplication fix). ``GET .../actions/secrets/{name}`` at whichever of the three URL
+  shapes ``row.scope`` names (organization / repository / environment): 404 is ``not_found``,
+  routed through the same reach-gated ``_absence_verdict`` as every other type here. GitHub's
+  secrets API returns only a name and timestamps — no numeric id, nothing independent of the
+  name the URL already asked for — so a ``found`` probe's own identity claim IS the name it
+  was given, never an id the source reports back. ``REIDENTIFIED`` and ``RELOCATED`` are
+  therefore structurally unreachable for this type: there is nothing beyond "found" or "not
+  found" for the probe to compare. Only the repository scope is a retirement candidate today
+  (``GithubRepository.CONTAINMENT_EDGES``); organization and environment scope remain
+  references (``GithubAccount``, ``GithubEnvironment``), so ``ActionsSecretFalsifier`` judges
+  all three shapes correctly but is only ever called with repository-scoped candidates until
+  that widens.
 - **Shape C, immutable events** — ``github_actions_run`` and ``github_actions_job`` get NO
   falsifier on purpose: no containment edge reaches them, so they are never candidates, and
   a run does not stop having happened when GitHub ages it out.
@@ -582,6 +595,101 @@ class EnvironmentFalsifier(_GithubFalsifier):
         return verdict_from_probe(candidate, expected, probe)
 
 
+class ActionsSecretFalsifier(_GithubFalsifier):
+    """Shape B with no stable id: ``GET`` a single secret at whichever of three URL shapes
+    ``row.scope`` names, and compare presence only (github-core#866).
+
+    GitHub's secrets API returns ``{name, created_at, updated_at, visibility (org only)}`` —
+    never a numeric id, and never anything about the object that was not already in the URL
+    used to ask for it. Every other falsifier in this module compares a source-reported id
+    (or, for a job, a workflow id GitHub's Actions record carries independently of the file
+    path used to reach it) against what the grid holds; a secret offers nothing like that.
+
+    So ``Expected.source_id`` and a found ``Probe.source_id`` are both set to the row's own
+    canonical (upper-cased) name — the same value the URL was built from, never an
+    independently-reported one — which makes them equal by construction whenever anything is
+    found. ``owner`` and ``name`` are left uncompared (``None`` on both sides): the address a
+    secret is probed at already encodes its full location (scope, owner/repository, and for an
+    environment secret, the environment), so there is no separate "owner" or "name" the source
+    could report that would mean a transfer or a rename. Concretely, this means
+    **``REIDENTIFIED`` and ``RELOCATED`` can never be the verdict for this type** — a ``found``
+    probe is always ``PRESENT_AT_PROBE``, and the only other reachable verdicts are
+    ``DROPPED_FROM_OBSERVATION`` (via the same reach-gated ``_absence_verdict`` every other
+    type here uses) and ``UNDETERMINED``.
+
+    ``row.scope`` selects the path: ``organization`` (``GET
+    /orgs/{owner}/actions/secrets/{name}``), ``repository`` (``GET
+    /repos/{owner}/{repo}/actions/secrets/{name}``), or ``environment`` (``GET
+    /repos/{owner}/{repo}/environments/{environment}/secrets/{name}``). The repository and
+    environment shapes live inside a repository, so a 404 there is judged against a probe of
+    that repository (``parent_probe=True``, exactly like ``EnvironmentFalsifier``); an
+    organization secret has no containing repository to probe or to check reach against, so
+    it is judged with ``parent_probe=False`` and an empty ``full_name`` — which, correctly,
+    means ``Reach.holds_repository`` can never say yes for it, so an organization secret's
+    absence is always ``UNDETERMINED(scope_unknown)`` until the reach model grows an
+    account-level notion of reach.
+    """
+
+    def judge(self, client: ProbeClient, candidate: Candidate) -> Verdict:
+        row = _row_of(candidate.entity_id)
+        if row is None:
+            return _undetermined(candidate, "errored", "the grid row could not be read")
+        name = str(getattr(row, "name", "") or "")
+        scope = str(getattr(row, "scope", "") or "")
+        if not name or scope not in ("organization", "repository", "environment"):
+            return _undetermined(
+                candidate, "scope_unknown", "the grid holds no name or a recognised scope for this secret"
+            )
+        owner_login = str(getattr(row, "owner_login", "") or "")
+        full_name = str(getattr(row, "full_name", "") or "")
+        environment_name = str(getattr(row, "environment_name", "") or "")
+        if scope == "organization":
+            if not owner_login:
+                return _undetermined(
+                    candidate, "scope_unknown", "the grid holds no owner login for this organisation secret"
+                )
+            path = f"/orgs/{owner_login}/actions/secrets/{quote(name, safe='')}"
+            parent_probe = False
+        elif scope == "repository":
+            if "/" not in full_name:
+                return _undetermined(
+                    candidate, "scope_unknown", "the grid holds no repository locator for this secret"
+                )
+            path = f"/repos/{full_name}/actions/secrets/{quote(name, safe='')}"
+            parent_probe = True
+        else:
+            if "/" not in full_name or not environment_name:
+                return _undetermined(
+                    candidate,
+                    "scope_unknown",
+                    "the grid holds no repository locator or environment name for this secret",
+                )
+            path = (
+                f"/repos/{full_name}/environments/{quote(environment_name, safe='')}/secrets/"
+                f"{quote(name, safe='')}"
+            )
+            parent_probe = True
+        # No owner, no name: the address already IS the full location, so there is nothing left
+        # for a found probe to disagree with the grid about besides existence.
+        expected = Expected(source_id=name, owner=None, name=None)
+        result = self._probe_get(client, path)
+        if isinstance(result, Probe):
+            if result.status == "not_found":
+                return self._absence_verdict(
+                    client, candidate, expected, result, full_name=full_name, parent_probe=parent_probe
+                )
+            return verdict_from_probe(candidate, expected, result)
+        probe = Probe(
+            status="found",
+            source_id=name,
+            owner=None,
+            name=None,
+            created_at=_created_at(result),
+            detail="HTTP 200",
+        )
+        return verdict_from_probe(candidate, expected, probe)
+
+
 #: The probe recorded when a file read yields neither a record nor a failure — unreachable by
 #: construction (``_workflow_file_at_head`` always returns one of the two), kept so the fail-closed
 #: branch needs no assertion that a production build would strip.
@@ -733,6 +841,7 @@ class WorkflowJobFalsifier(_GithubFalsifier):
 
 
 __all__ = [
+    "ActionsSecretFalsifier",
     "EnvironmentFalsifier",
     "RepositoryFalsifier",
     "WorkflowFalsifier",
