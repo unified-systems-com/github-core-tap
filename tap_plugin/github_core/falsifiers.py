@@ -29,6 +29,17 @@ Which types get one follows the shape table in github-core#14:
   falsifier on purpose: no containment edge reaches them, so they are never candidates, and
   a run does not stop having happened when GitHub ages it out.
 
+  ``pull_request``, ``code_scanning_alert`` and ``status_check`` join this shape (github-core#194;
+  an earlier audit flagged all three as "arguably event-like, no clear docstring stance" — this
+  is that stance, with the reasoning on each model). A PR or an alert never leaves GitHub's API
+  on close/merge or dismiss/fix — only ``state`` changes, which the collector already re-observes
+  — and neither has any edge targeting it that a model could declare as containment, so both are
+  structurally unreachable by ``tap_grid.candidates`` regardless. ``status_check`` is further out:
+  it names no GitHub resource at all, only a context string two declarations (``REQUIRES_CHECK``,
+  ``PRODUCES_CHECK``) happen to agree on, so a falsifier would have nothing to probe — its
+  freshness is the edges', re-derived every run. See ``PullRequest``, ``CodeScanningAlert`` and
+  ``StatusCheck``'s own docstrings for the full reasoning per type.
+
 ``Expected.owner`` is the parent's source identity read off the candidate's ``parent``
 (Option A, tap#650): the account login for a repository, the repository full name for a
 workflow or an environment, the workflow id for a declared job. Where the grid holds no

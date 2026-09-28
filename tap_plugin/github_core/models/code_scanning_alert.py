@@ -28,6 +28,25 @@ class CodeScanningAlert(BaseModel):
     explain a dismissal and are empty otherwise. `fixed_at` and `dismissed_at` are null until they
     happen — null is "unobserved", never "now".
 
+    Reconciliation (github-core#14 shape C, github-core#194): an IMMUTABLE EVENT, and doubly so.
+    Like a pull request, GitHub never removes a code scanning alert from the API on dismiss or
+    fix — `GET /repos/{owner}/{repo}/code-scanning/alerts/{alert_number}` answers a dismissed or
+    fixed alert forever; only `state` and the `dismissed_*`/`fixed_at` fields change, which the
+    collector already re-observes on the alert's own record. But this type also has no PATH a
+    containment declaration could ever use: it is the SOURCE of `DETAILS_FINDING`
+    (alert -> `compliance_core__compliance_finding`), never a target of any edge in this plugin,
+    so no model could declare it a containment child even if one wanted to — it is structurally
+    an orphan for the retirement-candidate mechanism (`tap_grid.candidates`), the same way
+    `github_actions_run` is. It declares no falsifier for that reason and this one together.
+
+    The generic finding this alert backs (`compliance_core__compliance_finding`, minted by
+    `identity.py`'s `code_scanning_finding_id()`) is a DIFFERENT type this plugin does not own —
+    compliance_core declares its own `CONTAINMENT_EDGES`, if any, and its falsifier question is
+    compliance_core's to answer, not this docstring's (github-core#194 surveyed it: no model
+    anywhere currently declares `CARRIES_COMPLIANCE_FINDING` as containment either, so today the
+    finding is in the same unreached position — but that is an observation, not a decision this
+    repo is positioned to make).
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-code-scanning)
     """
 

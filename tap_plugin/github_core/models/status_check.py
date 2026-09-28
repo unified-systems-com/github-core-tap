@@ -26,6 +26,24 @@ class StatusCheck(BaseModel):
     integration must produce it is a property of the REQUIREMENT (`REQUIRES_CHECK`), not of
     the check.
 
+    **Not the same thing its name suggests.** This is not GitHub's per-commit status resource
+    (`GET /repos/{owner}/{repo}/commits/{ref}/statuses`) and there is no GitHub endpoint that
+    answers "does this named check context still exist" — a status check context is not a
+    resource GitHub hands back an id for, it is a string two different declarations happen to
+    agree on. This node is DERIVED, minted from that convergence: a ruleset's
+    `required_status_checks` names a context (`REQUIRES_CHECK`, ruleset -> this node) and a
+    workflow job's display name may satisfy one (`PRODUCES_CHECK`, workflow -> this node). A
+    falsifier would have nothing on GitHub's side to probe.
+
+    Reconciliation (github-core#14 shape C, github-core#194): neither `GithubRuleset` nor
+    `GithubWorkflow` declares `REQUIRES_CHECK` or `PRODUCES_CHECK` in `CONTAINMENT_EDGES` — and
+    `GithubRuleset`'s own docstring already says a ruleset is "NOT contained by any one of
+    [the repositories it protects]" and is not itself a candidate, so there is no live parent
+    this node could ever be missing from. Its freshness is carried entirely by those two edges,
+    which the collector already re-derives every run: a ruleset that drops the requirement, or
+    a workflow that stops declaring the job, simply does not re-emit its edge into this node —
+    ordinary edge reconciliation, not node retirement. No falsifier is declared.
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-status-checks)
     """
 

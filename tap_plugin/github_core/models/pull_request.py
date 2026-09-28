@@ -22,6 +22,21 @@ class PullRequest(BaseModel):
     `checks` is the itemised evidence. A PR whose head carries no rollup has `""` there — nothing
     ran — which is not `SUCCESS` and must not render as green.
 
+    Reconciliation (github-core#14 shape C, github-core#194): an IMMUTABLE EVENT, not an
+    enumerable resource. GitHub never removes a pull request from the API on close or merge —
+    `GET /repos/{owner}/{repo}/pulls/{number}` answers a closed or merged PR indefinitely; only
+    `state` (and `merged_at`/`closed_at`) change, and the collector's pull-request layer already
+    re-reads every state via a `pullRequests` connection with no `states:` filter
+    (`graphql_client.py`'s `_PULL_REQUEST_QUERY_TEMPLATE`). So closing or merging is a field
+    update this plugin already observes, never an absence to falsify. The one true disappearance
+    — the containing repository deleted or transferred — is `github_core__github_repository`'s
+    own candidate surface, not this node's; `GithubRepository`'s docstring already carries pull
+    requests under "references or immutable events: none retires with the repository through the
+    cascade, and none is a candidate surface." No model declares a `CONTAINMENT_EDGES` entry
+    that targets this type (`OPENS_PULL_REQUEST` runs account/app -> PR, not repository -> PR),
+    so it is never a retirement candidate and declares no falsifier
+    (`tap_plugin.github_core.falsifiers`).
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-pull-requests)
     """
 
