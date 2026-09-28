@@ -1,5 +1,5 @@
 manifest_version = "0"
-plugin_version = "0.12.2" # x-release-please-version
+plugin_version = "0.12.3" # x-release-please-version
 # 0.2.1 (2026-09-22): the first core release carrying tap_cares.collectors.run_with_ceiling
 # (unified-systems-com/tap#753, unified-systems-com/tap#750) — this PR's own _under_ceiling
 # de-duplicates onto it, so the floor names the release that actually has the symbol.
