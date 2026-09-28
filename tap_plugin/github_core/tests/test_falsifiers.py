@@ -970,6 +970,35 @@ class TestAppInstallationFalsifier:
         [verdict] = AppInstallationFalsifier(client=fake).batch_falsify([candidate], _context())
         assert verdict.verdict == PRESENT_AT_PROBE
 
+    @pytest.mark.spec("req-grid-reconcile-absence-states")
+    def test_production_wiring_reads_app_id_off_the_session_not_an_injected_shortcut(self) -> None:
+        """Every other case above injects `credential_app_id=` directly — a test shortcut around
+        `self._auth`. This one goes through `session_factory=`, the same seam `_resolve_client()`
+        uses for a bare `AppInstallationFalsifier()` in production (`_default_app_session`), to
+        prove `_credential_app_id()` really does read `self._auth.app_id` when nothing was
+        injected, rather than silently finding no credential and going quiet."""
+
+        class _Auth:
+            has_app = True
+            has_pat = False
+            app_id = self.CREDENTIAL_APP_ID
+
+        app = _create(GITHUB_APP, {"slug": "acme-bot", "app_id": self.CREDENTIAL_APP_ID})
+        _, dropped = self._installation(app, 2)
+        other_app = _create(GITHUB_APP, {"slug": "other-bot", "app_id": 901})
+        _, mismatched = self._installation(other_app, 3, slug="other-bot")
+        fake = FakeGithub()
+        fake.refuse("/app/installations/2", 404)
+        fake.refuse("/app/installations/3", 404)
+
+        falsifier = AppInstallationFalsifier(session_factory=lambda: (fake, _Auth()))
+        [dropped_verdict, mismatched_verdict] = falsifier.batch_falsify([dropped, mismatched], _context())
+        assert dropped_verdict.verdict == DROPPED_FROM_OBSERVATION, (
+            "the session factory populated self._auth, and self._auth.app_id matched the "
+            "candidate's own App — the same path `_default_app_session` wires in production"
+        )
+        assert (mismatched_verdict.verdict, mismatched_verdict.reason) == (UNDETERMINED, "scope_unknown")
+
     def test_a_row_without_a_stable_id_is_not_answered(self) -> None:
         # `installation_id` is CREATE_REQUIRED, so a legitimately-created row always has one;
         # this exercises the defensive path against a row later blanked out some other way.
