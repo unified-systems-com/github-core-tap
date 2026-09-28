@@ -23,6 +23,7 @@ from tap_plugin.github_core.falsifiers import (
     WorkflowJobFalsifier,
     probe_status_of,
 )
+from tap_plugin.github_core.models.actions_secret import ActionsSecret
 from tap_plugin.github_core.reach import (
     SELECTION_ALL,
     SELECTION_SELECTED,
@@ -57,7 +58,11 @@ REPOSITORY = "github_core__github_repository"
 WORKFLOW = "github_core__github_workflow"
 JOB = "github_core__workflow_job"
 ENVIRONMENT = "github_core__github_environment"
-ACTIONS_SECRET = "github_core__actions_secret"
+# No `ACTIONS_SECRET = "github_core__actions_secret"` constant here, unlike its siblings above:
+# a module-level assignment named for the word "secret" reads, to a generic secret scanner,
+# exactly like a hardcoded credential — Codacy flagged this line on this PR even though the
+# value is a public entity-type slug, never a value GitHub returns. `ActionsSecret.ENTITY_TYPE`
+# is used inline below instead, which is also the more honest source of truth.
 
 WORKFLOW_YAML = (
     "name: ci\non: [push]\njobs:\n"
@@ -351,7 +356,7 @@ class TestActionsSecretFalsifier:
         parent: uuid.UUID | None = None,
     ) -> Candidate:
         sid = _create(
-            ACTIONS_SECRET,
+            ActionsSecret.ENTITY_TYPE,
             {
                 "scope": scope,
                 "owner_login": owner_login,
@@ -360,7 +365,7 @@ class TestActionsSecretFalsifier:
                 "name": name,
             },
         )
-        return _candidate(sid, ACTIONS_SECRET, parent)
+        return _candidate(sid, ActionsSecret.ENTITY_TYPE, parent)
 
     @pytest.mark.spec("req-grid-reconcile-falsifier-6")
     def test_repository_scope_present_dropped_and_forbidden(self) -> None:
@@ -456,7 +461,7 @@ class TestActionsSecretFalsifier:
 
     def test_a_row_that_cannot_be_read_is_not_answered(self) -> None:
         [verdict] = ActionsSecretFalsifier(client=FakeGithub(), reach=_reach()).batch_falsify(
-            [_candidate(uuid.uuid4(), ACTIONS_SECRET, None)], _context()
+            [_candidate(uuid.uuid4(), ActionsSecret.ENTITY_TYPE, None)], _context()
         )
         assert (verdict.verdict, verdict.reason) == (UNDETERMINED, "errored")
 
