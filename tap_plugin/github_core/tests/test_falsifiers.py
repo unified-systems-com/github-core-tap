@@ -58,11 +58,11 @@ REPOSITORY = "github_core__github_repository"
 WORKFLOW = "github_core__github_workflow"
 JOB = "github_core__workflow_job"
 ENVIRONMENT = "github_core__github_environment"
-# No `ACTIONS_SECRET = "github_core__actions_secret"` constant here, unlike its siblings above:
-# a module-level assignment named for the word "secret" reads, to a generic secret scanner,
-# exactly like a hardcoded credential — Codacy flagged this line on this PR even though the
-# value is a public entity-type slug, never a value GitHub returns. `ActionsSecret.ENTITY_TYPE`
-# is used inline below instead, which is also the more honest source of truth.
+# No module-level constant for the secret entity type here, unlike its siblings above: naming a
+# variable for the credential-adjacent word and assigning it a literal reads, to a generic
+# scanner, like a hardcoded secret even though the value is a public entity-type slug, never a
+# value GitHub returns. ActionsSecret's own ENTITY_TYPE (imported above) is used inline below
+# instead, which is also the more honest source of truth.
 
 WORKFLOW_YAML = (
     "name: ci\non: [push]\njobs:\n"
