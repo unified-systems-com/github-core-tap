@@ -28,10 +28,20 @@ class AppInstallation(BaseModel):
 
     The falsifier (`tap_plugin.github_core.falsifiers.AppInstallationFalsifier`) does not fit
     shapes A/B/C: it probes `GET /app/installations/{installation_id}` under the App's own JWT
-    (`GithubAuth.app_jwt()`), never the installation token. That distinction is the whole reason
-    this type needs no reach gate the way `RepositoryFalsifier` does (github-core#157) — the JWT
-    is not asking "can THIS grant still see it", it is the App asking about its OWN installation,
-    globally, so a 404 is unambiguous: this installation id is no longer associated with the App.
+    (`GithubAuth.app_jwt()`), never the installation token. That distinction is why it needs no
+    REPOSITORY reach gate the way `RepositoryFalsifier` does (github-core#157) — the JWT is not
+    asking "can THIS grant still see it", it is the App asking about its OWN installation.
+
+    It needs a DIFFERENT gate instead (PR #200 review): the account's installation listing
+    (`_collect_app_installations`) mints an `app_installation` under whichever App actually
+    registered it — which may not be this plugin's own App (a third party the account also
+    installed). `GET /app/installations/{id}` 404s identically for a revoked installation and for
+    one belonging to an App this JWT was never issued for, so `judge` compares the candidate's
+    parent (`github_app.app_id`) against the credential's own App id (`GithubAuth.app_id`) before
+    trusting a `not_found`; a mismatch, or either side unread, answers
+    `UNDETERMINED(scope_unknown)` rather than a retirement. A `found` (200) needs no such gate —
+    GitHub cannot hand this JWT another App's installation.
+
     A PAT-only credential cannot mint a JWT at all (`GithubAuth.has_app` is `False`), so the
     falsifier answers `UNDETERMINED(scope_unknown)` for every candidate rather than attempting a
     call it cannot make.

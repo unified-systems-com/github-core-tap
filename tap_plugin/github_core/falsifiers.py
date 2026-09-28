@@ -66,11 +66,18 @@ Which types get one follows the shape table in github-core#14:
 - **App installation, a fourth shape** — ``app_installation`` gets a falsifier
   (``AppInstallationFalsifier``, github-core#197) that fits none of A/B/C. The probe is
   ``GET /app/installations/{id}`` under the App's own JWT (``GithubAuth.app_jwt()``), never the
-  installation token a repository-scoped probe would use. That is the whole reason it needs no
-  reach gate (github-core#157): the JWT is not asking "can this grant still see it" — it is the
-  App asking about its OWN installation, globally, so a 404 is unambiguous. A PAT-only credential
-  cannot mint a JWT at all and answers ``UNDETERMINED(scope_unknown)`` for every candidate rather
-  than attempting a call it structurally cannot make. Containment is declared on ``GithubApp``
+  installation token a repository-scoped probe would use, so it needs no REPOSITORY reach gate
+  (github-core#157): the JWT is not asking "can this grant still see it" — it is the App asking
+  about its OWN installation. It needs a different gate instead (PR #200 review): the endpoint
+  404s both for a revoked installation and for one that belongs to a DIFFERENT App than the one
+  this JWT authenticates as — the account's installation listing mints ``app_installation`` nodes
+  under whichever App actually registered each one, which need not be this plugin's own App. So a
+  ``not_found`` is compared against ``github_app.app_id`` (the candidate's parent) vs
+  ``GithubAuth.app_id`` (the credential's own) before it is trusted; a mismatch, or either side
+  unknown, is ``UNDETERMINED(scope_unknown)``, never a retirement. A ``found`` (200) needs no such
+  gate — GitHub cannot hand this JWT another App's installation. A PAT-only credential cannot mint
+  a JWT at all and answers ``UNDETERMINED(scope_unknown)`` for every candidate rather than
+  attempting a call it structurally cannot make. Containment is declared on ``GithubApp``
   (``REGISTERS_INSTALLATION``): see both models' docstrings for why the security-relevant absence
   here is the installation, never the application.
 
@@ -740,8 +747,21 @@ class AppInstallationFalsifier(_GithubFalsifier):
     the installation was never granted answers 404 for a reason that has nothing to do with the
     object's existence. This falsifier's question is different in kind: the App is asking about
     its OWN installation, and its JWT can name any installation of itself regardless of what that
-    installation was ever granted. A 404 here is unambiguous — this installation id is no longer
-    associated with the App — so no reach gate applies and ``_absence_verdict`` is never used.
+    installation was ever granted.
+
+    That "its own" is load-bearing, and a 404 is NOT unconditionally unambiguous the way the
+    class docstring first assumed (AI review, PR #200): the account's installation listing
+    (``_collect_app_installations``) mints an ``app_installation`` under whichever App actually
+    registered it, which may be a DIFFERENT App than the one this plugin's own credential
+    authenticates as (Dependabot, or any other third party the account installed). GitHub's
+    endpoint 404s both for an installation this App never had and for one that was genuinely
+    revoked — the same two-readings-under-one-status-line shape ``reach.py`` exists for, just
+    keyed on App identity instead of repository membership. So ``judge`` compares the
+    candidate's parent (``github_app.app_id``) against the credential's own App id
+    (``GithubAuth.app_id``) BEFORE trusting a ``not_found``: a mismatch, or either side unknown,
+    answers ``UNDETERMINED(scope_unknown)`` rather than a retirement. A ``found`` (200) needs no
+    such gate — GitHub cannot hand this JWT another App's installation, so a 200 is unconditional
+    proof either way.
 
     The credential itself is the one thing that CAN be absent: a PAT-only envelope cannot mint a
     JWT at all (``GithubAuth.has_app`` is ``False``), which ``_default_app_session`` raises on and
@@ -754,18 +774,28 @@ class AppInstallationFalsifier(_GithubFalsifier):
         client: ProbeClient | None = None,
         client_factory: Callable[[], ProbeClient] | None = None,
         session_factory: Callable[[], tuple[ProbeClient, Any]] | None = None,
+        credential_app_id: int | str | None = None,
     ) -> None:
         super().__init__(
             client=client,
             client_factory=client_factory,
             session_factory=session_factory or _default_app_session,
         )
+        #: A caller-pinned App id (tests). ``None`` means "read it off ``self._auth``", which is
+        #: itself ``None`` for an injected client with no session behind it — the same "an
+        #: injected client proves nothing about the credential" discipline `_resolve_reach` uses.
+        self._injected_app_id = credential_app_id
+
+    def _credential_app_id(self) -> int | str | None:
+        if self._injected_app_id is not None:
+            return self._injected_app_id
+        return getattr(self._auth, "app_id", None)
 
     def batch_falsify(self, candidates: Sequence[Candidate], context: FalsifyContext) -> list[Verdict]:
         # Overridden rather than reusing the base class's flow: that flow resolves a REPOSITORY
         # reach (`_resolve_reach`) which this falsifier's JWT-authenticated client cannot answer
         # (`/installation/repositories` requires an installation token) and does not need — the
-        # JWT probe is self-authoritative, per the class docstring.
+        # App-identity gate above is this falsifier's own, different, gate.
         self._begin_run(context.batch_id)
         try:
             client = self._resolve_client()
@@ -794,8 +824,30 @@ class AppInstallationFalsifier(_GithubFalsifier):
         expected = Expected(source_id=str(installation_id), owner=owner, name=app_slug)
         result = self._probe_get(client, f"/app/installations/{installation_id}")
         if isinstance(result, Probe):
-            # No reach gate and no parent probe: see the class docstring. The App JWT already
-            # answers "does this exist" directly; there is no ambiguous 404 left to disambiguate.
+            if result.status == "not_found":
+                parent_app_id = getattr(parent, "app_id", None) if parent is not None else None
+                credential_app_id = self._credential_app_id()
+                if parent_app_id is None or credential_app_id is None:
+                    return _undetermined(
+                        candidate,
+                        "scope_unknown",
+                        "this credential's own App id could not be compared against the "
+                        "installation's App (github_app.app_id or GithubAuth.app_id unread), so a "
+                        "404 from an App-scoped endpoint cannot be trusted as absence",
+                    )
+                if str(parent_app_id) != str(credential_app_id):
+                    return _undetermined(
+                        candidate,
+                        "scope_unknown",
+                        f"this credential is App {credential_app_id}, not the installation's own App "
+                        f"{parent_app_id}: GET /app/installations/{{id}} 404s for an installation "
+                        "belonging to a different App exactly as it does for one that was revoked "
+                        "(github-core#197, PR #200 review), so this 404 says nothing about whether "
+                        "the installation still exists",
+                    )
+            # Either `found`, or a `not_found` whose App identity was confirmed above: no reach
+            # gate and no parent probe beyond that — the App JWT already answers "does this
+            # exist" directly, once it is asking about the right App.
             return verdict_from_probe(candidate, expected, result)
         found_slug = str(result.get("app_slug") or "") or None
         probe = Probe(
