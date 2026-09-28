@@ -68,7 +68,7 @@ Which types get one follows the shape table in github-core#14:
   ``GET /app/installations/{id}`` under the App's own JWT (``GithubAuth.app_jwt()``), never the
   installation token a repository-scoped probe would use, so it needs no REPOSITORY reach gate
   (github-core#157): the JWT is not asking "can this grant still see it" — it is the App asking
-  about its OWN installation. It needs a different gate instead (PR #200 review): the endpoint
+  about its OWN installation. It needs a different gate instead: the endpoint
   404s both for a revoked installation and for one that belongs to a DIFFERENT App than the one
   this JWT authenticates as — the account's installation listing mints ``app_installation`` nodes
   under whichever App actually registered each one, which need not be this plugin's own App. So a
@@ -749,9 +749,9 @@ class AppInstallationFalsifier(_GithubFalsifier):
     its OWN installation, and its JWT can name any installation of itself regardless of what that
     installation was ever granted.
 
-    That "its own" is load-bearing, and a 404 is NOT unconditionally unambiguous the way the
-    class docstring first assumed (AI review, PR #200): the account's installation listing
-    (``_collect_app_installations``) mints an ``app_installation`` under whichever App actually
+    That "its own" is load-bearing, and a 404 is NOT unconditionally unambiguous: the account's
+    installation listing (``_collect_app_installations``) mints an ``app_installation`` under
+    whichever App actually
     registered it, which may be a DIFFERENT App than the one this plugin's own credential
     authenticates as (Dependabot, or any other third party the account installed). GitHub's
     endpoint 404s both for an installation this App never had and for one that was genuinely
@@ -842,8 +842,8 @@ class AppInstallationFalsifier(_GithubFalsifier):
                         f"this credential is App {credential_app_id}, not the installation's own App "
                         f"{parent_app_id}: GET /app/installations/{{id}} 404s for an installation "
                         "belonging to a different App exactly as it does for one that was revoked "
-                        "(github-core#197, PR #200 review), so this 404 says nothing about whether "
-                        "the installation still exists",
+                        "(github-core#197), so this 404 says nothing about whether the installation "
+                        "still exists",
                     )
             # Either `found`, or a `not_found` whose App identity was confirmed above: no reach
             # gate and no parent probe beyond that — the App JWT already answers "does this

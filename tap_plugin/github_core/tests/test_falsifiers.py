@@ -885,8 +885,8 @@ class TestAppInstallationFalsifier:
     `GithubAuth.app_id`, which an injected client carries no credential to read (same "an injected
     client proves nothing" discipline as `reach=` on the other falsifiers) — every case here pins
     it to match the candidate's parent `github_app.app_id` UNLESS the case is specifically testing
-    the mismatch (PR #200 review: a 404 from this endpoint is ambiguous between "revoked" and
-    "belongs to a different App this JWT was never issued for").
+    the mismatch: a 404 from this endpoint is ambiguous between "revoked" and "belongs to a
+    different App this JWT was never issued for".
     """
 
     CREDENTIAL_APP_ID = 900
@@ -931,10 +931,10 @@ class TestAppInstallationFalsifier:
 
     @pytest.mark.spec("req-grid-reconcile-absence-states")
     def test_a_404_under_a_different_apps_credential_is_undetermined_not_dropped(self) -> None:
-        """PR #200 review: this endpoint 404s both for a revoked installation and for one that
-        belongs to a DIFFERENT App than the JWT in use — the same status line, two facts. Held
-        constant here: the credential (App 900) is genuinely valid and the probe genuinely 404s;
-        only the candidate's OWN App (901, a different one) varies."""
+        """This endpoint 404s both for a revoked installation and for one that belongs to a
+        DIFFERENT App than the JWT in use — the same status line, two facts. Held constant here:
+        the credential (App 900) is genuinely valid and the probe genuinely 404s; only the
+        candidate's OWN App (901, a different one) varies."""
         other_app = _create(GITHUB_APP, {"slug": "other-bot", "app_id": 901})
         _, candidate = self._installation(other_app, 2, slug="other-bot")
         fake = FakeGithub()
@@ -961,9 +961,9 @@ class TestAppInstallationFalsifier:
 
     @pytest.mark.spec("req-grid-reconcile-absence-states")
     def test_a_found_probe_needs_no_app_identity_gate(self) -> None:
-        """The other half of the same review finding: GitHub cannot hand this JWT a DIFFERENT
-        App's installation, so a 200 is unconditional proof either way — no `credential_app_id`
-        needed at all for the present/reidentified paths."""
+        """GitHub cannot hand this JWT a DIFFERENT App's installation, so a 200 is unconditional
+        proof either way — no `credential_app_id` needed at all for the present/reidentified
+        paths."""
         app = _create(GITHUB_APP, {"slug": "acme-bot"})  # no app_id recorded, and none injected
         _, candidate = self._installation(app, 1)
         fake = FakeGithub({"/app/installations/1": {"id": 1, "app_slug": "acme-bot"}})

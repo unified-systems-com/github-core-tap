@@ -32,7 +32,7 @@ class AppInstallation(BaseModel):
     REPOSITORY reach gate the way `RepositoryFalsifier` does (github-core#157) — the JWT is not
     asking "can THIS grant still see it", it is the App asking about its OWN installation.
 
-    It needs a DIFFERENT gate instead (PR #200 review): the account's installation listing
+    It needs a DIFFERENT gate instead: the account's installation listing
     (`_collect_app_installations`) mints an `app_installation` under whichever App actually
     registered it — which may not be this plugin's own App (a third party the account also
     installed). `GET /app/installations/{id}` 404s identically for a revoked installation and for
