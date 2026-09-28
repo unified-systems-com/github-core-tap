@@ -38,7 +38,7 @@ Emitted by the collector from the config-layer read that produced the pull reque
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `OPENS_PULL_REQUEST`, account|app → pull_request, `{author_association}`, friends tier.
-- unified-systems-com/tap-plugin-github-core#82 (2026-09-08) — the bake issue.
+- unified-systems-com/github-core-tap#82 (2026-09-08) — the bake issue.
 
 ## Endpoints
 

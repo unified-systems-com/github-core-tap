@@ -37,7 +37,7 @@ Emitted from the config-layer read; present when the head commit was emitted in 
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#82 (2026-09-08) — the bake issue.
+- unified-systems-com/github-core-tap#82 (2026-09-08) — the bake issue.
 - git_core's `RESOLVES_COMMIT` (2026-09-08, github-core#76) — the ref-to-commit peel this edge parallels from the proposal's side.
 
 ## Endpoints

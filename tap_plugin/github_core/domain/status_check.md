@@ -50,7 +50,7 @@ The producing side is **derived, and says so**: a GitHub Actions check run is na
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `status_check`, self tier, 6 sources, "convergence node — required by rulesets, produced by workflows/apps"; `REQUIRES_CHECK` `{enforcement}` and `PRODUCES_CHECK` `{confidence}`.
-- unified-systems-com/tap-plugin-github-core#61 (2026-09-02) — the bake issue: the payload anchor, the integration id, the type-only fallback, the done-test.
+- unified-systems-com/github-core-tap#61 (2026-09-02) — the bake issue: the payload anchor, the integration id, the type-only fallback, the done-test.
 - [`github_ruleset`](github_ruleset.md) § Fields, `rules` — "a gate view that knows a repository requires *some* check but not *which* is not a gate view."
 - OpenSSF Scorecard `Branch-Protection` check (as of 2026-09) — an independent implementation that reads required contexts as a gate input.
 

@@ -45,7 +45,7 @@ Every field is what the CommitSlice fragment on the config-layer refs query retu
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27, #57 2026-09-02) — `git_commit` pulled to the self tier because signature state is a ruleset input; the repository-scoped key argued in PR #60 review.
-- unified-systems-com/tap-plugin-github-core#76 rev 2 (2026-09-08) — ruling 0.2: observation identity = forge instance + stable repository id + commit identity; a stable record updated in place; network-level dedup later.
+- unified-systems-com/github-core-tap#76 rev 2 (2026-09-08) — ruling 0.2: observation identity = forge instance + stable repository id + commit identity; a stable record updated in place; network-level dedup later.
 - GitHub docs, "About commit signature verification" (retrieved 2026-09-02) — the verification record is persistent across the repository network.
 
 ## Fields

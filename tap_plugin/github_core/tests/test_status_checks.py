@@ -1,7 +1,7 @@
 """Status checks: where the gate and the machinery meet (req-github-core-status-checks).
 
 Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-status-checks)
-Issue: unified-systems-com/tap-plugin-github-core#61
+Issue: unified-systems-com/github-core-tap#61
 
 The tests that matter: a refused ruleset detail must be COUNTED, never read as a ruleset that
 requires nothing; and a producer derived from a matrix template must say so.

@@ -11,6 +11,11 @@
         {
           "type": "generic",
           "path": "tap_plugin/github_core/tap-plugin.toml"
+        },
+        {
+          "type": "json",
+          "path": "tap_plugin/github_core/boot/ci.boot.json",
+          "jsonpath": "$.install.plugins[?(@.slug=='github_core')].source.rev"
         }
       ]
     }
