@@ -15,8 +15,10 @@ from typing import Any
 
 import pytest
 from tap_plugin.github_core.collectors.github_collector.api_client import GithubAPIError
+from tap_plugin.github_core.collectors.github_collector.app_jwt import GithubAppAuthError
 from tap_plugin.github_core.falsifiers import (
     ActionsSecretFalsifier,
+    AppInstallationFalsifier,
     EnvironmentFalsifier,
     RepositoryFalsifier,
     WorkflowFalsifier,
@@ -63,6 +65,8 @@ ENVIRONMENT = "github_core__github_environment"
 # scanner, like a hardcoded secret even though the value is a public entity-type slug, never a
 # value GitHub returns. ActionsSecret's own ENTITY_TYPE (imported above) is used inline below
 # instead, which is also the more honest source of truth.
+GITHUB_APP = "github_core__github_app"
+APP_INSTALLATION = "github_core__app_installation"
 
 WORKFLOW_YAML = (
     "name: ci\non: [push]\njobs:\n"
@@ -869,3 +873,82 @@ class TestReachWalk:
         assert reach.holds_repository(github_id=7) is True
         assert reach.holds_repository(full_name="acme/app") is True
         assert reach.holds_repository(full_name="acme/other") is False
+
+
+@pytest.mark.django_db
+class TestAppInstallationFalsifier:
+    """A fourth shape (github-core#197): the App's own JWT asking about its own installation, no
+    reach gate. ``client=`` in every case below stands in for the JWT-authenticated client
+    ``_default_app_session`` would mint in production — the fake answers `/app/installations/{id}`
+    the same way whichever credential asked."""
+
+    @staticmethod
+    def _installation(app: uuid.UUID | None, installation_id: int, *, slug: str = "acme-bot") -> tuple[uuid.UUID, Candidate]:
+        iid = _create(
+            APP_INSTALLATION,
+            {"installation_id": installation_id, "app_slug": slug, "account_login": "acme"},
+        )
+        return iid, _candidate(iid, APP_INSTALLATION, app)
+
+    @pytest.mark.spec("req-grid-reconcile-falsifier-6")
+    def test_four_cases(self) -> None:
+        app = _create(GITHUB_APP, {"slug": "acme-bot"})
+        fake = FakeGithub()
+        cases: dict[str, Candidate] = {}
+        _, cases[CASE_PRESENT] = self._installation(app, 1)
+        fake.answer(
+            "/app/installations/1",
+            {"id": 1, "app_slug": "acme-bot", "created_at": "2024-01-01T00:00:00Z"},
+        )
+        _, cases[CASE_DROPPED] = self._installation(app, 2)
+        fake.refuse("/app/installations/2", 404)
+        _, cases[CASE_FORBIDDEN] = self._installation(app, 3)
+        fake.refuse("/app/installations/3", 403)
+        _, cases[CASE_REIDENTIFIED] = self._installation(app, 4)
+        fake.answer("/app/installations/4", {"id": 44, "app_slug": "acme-bot"})
+
+        verdicts = run_four_cases(AppInstallationFalsifier(client=fake), cases, _context())
+        _assert_evidence_supports(verdicts)
+        assert verdicts[CASE_PRESENT].expected == {"source_id": "1", "owner": "acme-bot", "name": "acme-bot"}
+        # No reach gate: a 404 here is DROPPED directly, never routed through `_absence_verdict`.
+        assert verdicts[CASE_DROPPED].verdict == DROPPED_FROM_OBSERVATION
+        assert sorted(fake.calls) == [
+            "/app/installations/1",
+            "/app/installations/2",
+            "/app/installations/3",
+            "/app/installations/4",
+        ]
+
+    def test_a_row_without_a_stable_id_is_not_answered(self) -> None:
+        # `installation_id` is CREATE_REQUIRED, so a legitimately-created row always has one;
+        # this exercises the defensive path against a row later blanked out some other way.
+        from tap_plugin.github_core.models.app_installation import AppInstallation
+
+        iid = _create(APP_INSTALLATION, {"installation_id": 5, "app_slug": "acme-bot"})
+        AppInstallation.objects.filter(entity_id=iid).update(installation_id=None)
+        fake = FakeGithub({"/app/installations/None": {"id": 1}})
+        [verdict] = AppInstallationFalsifier(client=fake).batch_falsify(
+            [_candidate(iid, APP_INSTALLATION, None)], _context()
+        )
+        assert (verdict.verdict, verdict.reason) == (UNDETERMINED, "scope_unknown")
+        assert fake.calls == [], "nothing is probed when the grid holds nothing to compare against"
+
+    def test_no_app_credential_answers_undetermined_scope_unknown(self) -> None:
+        """A PAT-only envelope cannot mint a JWT at all — structurally unable to ask the
+        App-only question, never a silent 'found nothing'."""
+
+        def boom() -> Any:
+            raise GithubAppAuthError("no App credential in the envelope")
+
+        candidates = [_candidate(uuid.uuid4(), APP_INSTALLATION, None, surface=i) for i in range(2)]
+        verdicts = AppInstallationFalsifier(client_factory=boom).batch_falsify(candidates, _context())
+        assert [(v.verdict, v.reason) for v in verdicts] == [(UNDETERMINED, "scope_unknown")] * 2
+        assert all("no App credential" in v.note for v in verdicts)
+
+    def test_an_unrelated_credential_failure_answers_errored(self) -> None:
+        def boom() -> Any:
+            raise RuntimeError("no secret mounted")
+
+        candidates = [_candidate(uuid.uuid4(), APP_INSTALLATION, None, surface=i) for i in range(2)]
+        verdicts = AppInstallationFalsifier(client_factory=boom).batch_falsify(candidates, _context())
+        assert [(v.verdict, v.reason) for v in verdicts] == [(UNDETERMINED, "errored")] * 2

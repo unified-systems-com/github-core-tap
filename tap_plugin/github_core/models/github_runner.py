@@ -15,6 +15,20 @@ class GithubRunner(BaseModel):
     runners are NOT modeled as nodes; observed runner fields live in
     `github_actions_job.configuration` instead.
 
+    Reconciliation (github-core#14, github-core#197): no falsifier, no containment — deferred, not
+    ruled out. Unlike releases, packages and custom properties, no edge in this plugin reaches a
+    runner from its repository at all today: the collector mints `github_runner` nodes standalone
+    (`collector.py`'s `_collect_app_installations`-adjacent runner walk) and joins them to
+    executing jobs only via `EXECUTED_ON_RUNNER` (job -> runner), never repository -> runner. A
+    `CONTAINMENT_EDGES` entry needs a new edge type first (e.g. `HOSTS_RUNNER__github_core`,
+    repository -> runner) plus collector wiring to emit it and to author a
+    `tap_grid.completeness` surface for the runners listing — real scope, not a docstring update,
+    so it is not built in the same pass that added `AppInstallationFalsifier`. Flagged as the
+    strongest candidate for a dedicated follow-up: the listing already degrades safely
+    (`permission_failure: degrade_with_warning`, Observability above) and the security stakes are
+    named directly in this article's own Purpose section ("a self-hosted runner attached to a
+    public repository is one of the highest-evidence conditions in the whole set").
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-models, req-github-core-runner)
     """
 
