@@ -23,6 +23,20 @@ class GithubApp(BaseModel):
     them (seven sources); merged, an account's granted permissions would hang
     off a node shared by every account that installed the same App.
 
+    Reconciliation (github-core#14, github-core#197): the APPLICATION itself is never retired on
+    absence — like ``github_account``, it "stops mattering" rather than disappears, and GitHub
+    gives no listing to walk it against anyway (an app node is minted from a mention as readily as
+    from an installation). What DOES retire is the grant: ``app_installation``, reached by
+    ``REGISTERS_INSTALLATION`` (the edge's current name; the paragraph above predates the
+    github-core#79 rename), is this node's one containment child. An uninstalled App is the
+    security-relevant absence: "an application is inert, an installation is a standing capability"
+    (above). ``REGISTERS_INSTALLATION`` is declared here even though this node's own absence is
+    never observed, exactly as ``github_account`` declares ``OWNS_REPO`` while never retiring
+    itself. See ``AppInstallation``'s own docstring for the falsifier
+    (``tap_plugin.github_core.falsifiers.AppInstallationFalsifier``), which probes
+    ``GET /app/installations/{id}`` under the App's own JWT — a question this node answers about
+    itself, with no repository-reach ambiguity to gate.
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-app)
     """
 
@@ -48,6 +62,20 @@ class GithubApp(BaseModel):
             "colors": {"fill": "#FFFFFF", "border": "#8250DF", "label": "#1F2328"},
         }
     }
+
+    # Edge permission (union with the edge definitions' own sources/targets): declared so the
+    # containment declaration below can name it — containment is a subset of permission
+    # (req-grid-service-delete-cascade-12). Every other outbound edge type this node already
+    # emits (ENABLED_ON_REPOSITORY, EXEMPTS_ACTOR, OPENS_PULL_REQUEST) is still permitted by its
+    # own `.edge.json` sources; this list constrains nothing it does not name.
+    OUTBOUND_EDGES: ClassVar[list[dict[str, Any]]] = [
+        {
+            "nodes": [{"type": "github_core__app_installation"}],
+            "edges": [{"type": "REGISTERS_INSTALLATION__github_core"}],
+        },
+    ]
+    #: What retires with this App node — never itself, only the grant (github-core#197).
+    CONTAINMENT_EDGES: ClassVar[tuple[str, ...]] = ("REGISTERS_INSTALLATION__github_core",)
 
     FIELD_CRUD_SCHEMA: ClassVar[dict[str, Any]] = {
         "slug": {"type": "string", "minLength": 1},

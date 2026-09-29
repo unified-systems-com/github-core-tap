@@ -15,8 +15,10 @@ from typing import Any
 
 import pytest
 from tap_plugin.github_core.collectors.github_collector.api_client import GithubAPIError
+from tap_plugin.github_core.collectors.github_collector.app_jwt import GithubAppAuthError
 from tap_plugin.github_core.falsifiers import (
     ActionsSecretFalsifier,
+    AppInstallationFalsifier,
     EnvironmentFalsifier,
     RepositoryFalsifier,
     WorkflowFalsifier,
@@ -63,6 +65,8 @@ ENVIRONMENT = "github_core__github_environment"
 # scanner, like a hardcoded secret even though the value is a public entity-type slug, never a
 # value GitHub returns. ActionsSecret's own ENTITY_TYPE (imported above) is used inline below
 # instead, which is also the more honest source of truth.
+GITHUB_APP = "github_core__github_app"
+APP_INSTALLATION = "github_core__app_installation"
 
 WORKFLOW_YAML = (
     "name: ci\non: [push]\njobs:\n"
@@ -869,3 +873,162 @@ class TestReachWalk:
         assert reach.holds_repository(github_id=7) is True
         assert reach.holds_repository(full_name="acme/app") is True
         assert reach.holds_repository(full_name="acme/other") is False
+
+
+@pytest.mark.django_db
+class TestAppInstallationFalsifier:
+    """A fourth shape (github-core#197): the App's own JWT asking about its own installation.
+
+    ``client=`` in every case below stands in for the JWT-authenticated client
+    ``_default_app_session`` would mint in production — the fake answers `/app/installations/{id}`
+    the same way whichever credential asked. ``credential_app_id=`` stands in for
+    `GithubAuth.app_id`, which an injected client carries no credential to read (same "an injected
+    client proves nothing" discipline as `reach=` on the other falsifiers) — every case here pins
+    it to match the candidate's parent `github_app.app_id` UNLESS the case is specifically testing
+    the mismatch: a 404 from this endpoint is ambiguous between "revoked" and "belongs to a
+    different App this JWT was never issued for".
+    """
+
+    CREDENTIAL_APP_ID = 900
+
+    @staticmethod
+    def _installation(app: uuid.UUID | None, installation_id: int, *, slug: str = "acme-bot") -> tuple[uuid.UUID, Candidate]:
+        iid = _create(
+            APP_INSTALLATION,
+            {"installation_id": installation_id, "app_slug": slug, "account_login": "acme"},
+        )
+        return iid, _candidate(iid, APP_INSTALLATION, app)
+
+    @pytest.mark.spec("req-grid-reconcile-falsifier-6")
+    def test_four_cases(self) -> None:
+        app = _create(GITHUB_APP, {"slug": "acme-bot", "app_id": self.CREDENTIAL_APP_ID})
+        fake = FakeGithub()
+        cases: dict[str, Candidate] = {}
+        _, cases[CASE_PRESENT] = self._installation(app, 1)
+        fake.answer(
+            "/app/installations/1",
+            {"id": 1, "app_slug": "acme-bot", "created_at": "2024-01-01T00:00:00Z"},
+        )
+        _, cases[CASE_DROPPED] = self._installation(app, 2)
+        fake.refuse("/app/installations/2", 404)
+        _, cases[CASE_FORBIDDEN] = self._installation(app, 3)
+        fake.refuse("/app/installations/3", 403)
+        _, cases[CASE_REIDENTIFIED] = self._installation(app, 4)
+        fake.answer("/app/installations/4", {"id": 44, "app_slug": "acme-bot"})
+
+        falsifier = AppInstallationFalsifier(client=fake, credential_app_id=self.CREDENTIAL_APP_ID)
+        verdicts = run_four_cases(falsifier, cases, _context())
+        _assert_evidence_supports(verdicts)
+        assert verdicts[CASE_PRESENT].expected == {"source_id": "1", "owner": "acme-bot", "name": "acme-bot"}
+        # No reach gate — but the App-identity match confirmed above IS the gate for the DROPPED case.
+        assert verdicts[CASE_DROPPED].verdict == DROPPED_FROM_OBSERVATION
+        assert sorted(fake.calls) == [
+            "/app/installations/1",
+            "/app/installations/2",
+            "/app/installations/3",
+            "/app/installations/4",
+        ]
+
+    @pytest.mark.spec("req-grid-reconcile-absence-states")
+    def test_a_404_under_a_different_apps_credential_is_undetermined_not_dropped(self) -> None:
+        """This endpoint 404s both for a revoked installation and for one that belongs to a
+        DIFFERENT App than the JWT in use — the same status line, two facts. Held constant here:
+        the credential (App 900) is genuinely valid and the probe genuinely 404s; only the
+        candidate's OWN App (901, a different one) varies."""
+        other_app = _create(GITHUB_APP, {"slug": "other-bot", "app_id": 901})
+        _, candidate = self._installation(other_app, 2, slug="other-bot")
+        fake = FakeGithub()
+        fake.refuse("/app/installations/2", 404)
+        falsifier = AppInstallationFalsifier(client=fake, credential_app_id=self.CREDENTIAL_APP_ID)
+        [verdict] = falsifier.batch_falsify([candidate], _context())
+        assert (verdict.verdict, verdict.reason) == (UNDETERMINED, "scope_unknown")
+        assert "not the installation's own App" in verdict.note
+        assert unsupported(verdict) is None
+
+    @pytest.mark.spec("req-grid-reconcile-absence-states")
+    def test_a_404_with_no_app_id_to_compare_is_undetermined_not_dropped(self) -> None:
+        """Fail-closed when either side of the App-identity comparison is unknown, not just when
+        it is known and mismatched — a legacy row with no recorded `app_id` must not read as a
+        free pass to retire."""
+        app = _create(GITHUB_APP, {"slug": "acme-bot"})  # no app_id recorded
+        _, candidate = self._installation(app, 2)
+        fake = FakeGithub()
+        fake.refuse("/app/installations/2", 404)
+        falsifier = AppInstallationFalsifier(client=fake, credential_app_id=self.CREDENTIAL_APP_ID)
+        [verdict] = falsifier.batch_falsify([candidate], _context())
+        assert (verdict.verdict, verdict.reason) == (UNDETERMINED, "scope_unknown")
+        assert "could not be compared" in verdict.note
+
+    @pytest.mark.spec("req-grid-reconcile-absence-states")
+    def test_a_found_probe_needs_no_app_identity_gate(self) -> None:
+        """GitHub cannot hand this JWT a DIFFERENT App's installation, so a 200 is unconditional
+        proof either way — no `credential_app_id` needed at all for the present/reidentified
+        paths."""
+        app = _create(GITHUB_APP, {"slug": "acme-bot"})  # no app_id recorded, and none injected
+        _, candidate = self._installation(app, 1)
+        fake = FakeGithub({"/app/installations/1": {"id": 1, "app_slug": "acme-bot"}})
+        [verdict] = AppInstallationFalsifier(client=fake).batch_falsify([candidate], _context())
+        assert verdict.verdict == PRESENT_AT_PROBE
+
+    @pytest.mark.spec("req-grid-reconcile-absence-states")
+    def test_production_wiring_reads_app_id_off_the_session_not_an_injected_shortcut(self) -> None:
+        """Every other case above injects `credential_app_id=` directly — a test shortcut around
+        `self._auth`. This one goes through `session_factory=`, the same seam `_resolve_client()`
+        uses for a bare `AppInstallationFalsifier()` in production (`_default_app_session`), to
+        prove `_credential_app_id()` really does read `self._auth.app_id` when nothing was
+        injected, rather than silently finding no credential and going quiet."""
+
+        class _Auth:
+            has_app = True
+            has_pat = False
+            app_id = self.CREDENTIAL_APP_ID
+
+        app = _create(GITHUB_APP, {"slug": "acme-bot", "app_id": self.CREDENTIAL_APP_ID})
+        _, dropped = self._installation(app, 2)
+        other_app = _create(GITHUB_APP, {"slug": "other-bot", "app_id": 901})
+        _, mismatched = self._installation(other_app, 3, slug="other-bot")
+        fake = FakeGithub()
+        fake.refuse("/app/installations/2", 404)
+        fake.refuse("/app/installations/3", 404)
+
+        falsifier = AppInstallationFalsifier(session_factory=lambda: (fake, _Auth()))
+        [dropped_verdict, mismatched_verdict] = falsifier.batch_falsify([dropped, mismatched], _context())
+        assert dropped_verdict.verdict == DROPPED_FROM_OBSERVATION, (
+            "the session factory populated self._auth, and self._auth.app_id matched the "
+            "candidate's own App — the same path `_default_app_session` wires in production"
+        )
+        assert (mismatched_verdict.verdict, mismatched_verdict.reason) == (UNDETERMINED, "scope_unknown")
+
+    def test_a_row_without_a_stable_id_is_not_answered(self) -> None:
+        # `installation_id` is CREATE_REQUIRED, so a legitimately-created row always has one;
+        # this exercises the defensive path against a row later blanked out some other way.
+        from tap_plugin.github_core.models.app_installation import AppInstallation
+
+        iid = _create(APP_INSTALLATION, {"installation_id": 5, "app_slug": "acme-bot"})
+        AppInstallation.objects.filter(entity_id=iid).update(installation_id=None)
+        fake = FakeGithub({"/app/installations/None": {"id": 1}})
+        [verdict] = AppInstallationFalsifier(client=fake).batch_falsify(
+            [_candidate(iid, APP_INSTALLATION, None)], _context()
+        )
+        assert (verdict.verdict, verdict.reason) == (UNDETERMINED, "scope_unknown")
+        assert fake.calls == [], "nothing is probed when the grid holds nothing to compare against"
+
+    def test_no_app_credential_answers_undetermined_scope_unknown(self) -> None:
+        """A PAT-only envelope cannot mint a JWT at all — structurally unable to ask the
+        App-only question, never a silent 'found nothing'."""
+
+        def boom() -> Any:
+            raise GithubAppAuthError("no App credential in the envelope")
+
+        candidates = [_candidate(uuid.uuid4(), APP_INSTALLATION, None, surface=i) for i in range(2)]
+        verdicts = AppInstallationFalsifier(client_factory=boom).batch_falsify(candidates, _context())
+        assert [(v.verdict, v.reason) for v in verdicts] == [(UNDETERMINED, "scope_unknown")] * 2
+        assert all("no App credential" in v.note for v in verdicts)
+
+    def test_an_unrelated_credential_failure_answers_errored(self) -> None:
+        def boom() -> Any:
+            raise RuntimeError("no secret mounted")
+
+        candidates = [_candidate(uuid.uuid4(), APP_INSTALLATION, None, surface=i) for i in range(2)]
+        verdicts = AppInstallationFalsifier(client_factory=boom).batch_falsify(candidates, _context())
+        assert [(v.verdict, v.reason) for v in verdicts] == [(UNDETERMINED, "errored")] * 2

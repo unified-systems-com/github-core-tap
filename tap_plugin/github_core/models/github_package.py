@@ -18,6 +18,16 @@ from tap_grid.models import BaseModel
 class GithubPackage(BaseModel):
     """One package as GitHub Packages reports it: type, name, owner, visibility, version count.
 
+    Reconciliation (github-core#14, github-core#197): no falsifier, no containment — already the
+    ruling on record. `github_account.py`'s own docstring lists packages under "Everything else
+    leaving an account (secrets, packages, custom properties) is a reference, not containment, and
+    stays live when the account goes." The observability section above reinforces why: the
+    packages listing is frequently `unobservable` under the product's own App credential (measured
+    400 on the container type), so `enumeration_complete` would rarely if ever be honestly
+    assertable for it — the same credential-shaped ambiguity as `github_custom_property`'s
+    (Shape E), without that type's mitigating direct-probe endpoint being wired to anything a
+    containment declaration could fan out from yet.
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-packages)
     """
 

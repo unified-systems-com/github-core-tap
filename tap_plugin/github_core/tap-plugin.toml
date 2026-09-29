@@ -102,13 +102,17 @@ DERIVED_FROM_INSTALLATION__github_core = "edges/DERIVED_FROM_INSTALLATION.edge.j
 
 [falsifiers]
 # One per reconcilable type — the containment targets the models declare (github-core#14 shapes A
-# and B; github-core#151). Shape C (runs, jobs-as-events) has none on purpose: no containment edge
-# reaches those types, so they are never candidates. See tap_plugin/github_core/falsifiers.py.
+# and B; github-core#151). Shape C (runs, jobs-as-events, pull requests, code scanning alerts,
+# status checks, releases, packages) has none on purpose: no containment edge reaches those types,
+# so they are never candidates. `app_installation` is a fourth shape (github-core#197): its probe
+# is the App's own JWT asking about itself, never a repository-reach question. See
+# tap_plugin/github_core/falsifiers.py.
 github_core__github_repository = "tap_plugin.github_core.falsifiers.RepositoryFalsifier"
 github_core__github_workflow = "tap_plugin.github_core.falsifiers.WorkflowFalsifier"
 github_core__workflow_job = "tap_plugin.github_core.falsifiers.WorkflowJobFalsifier"
 github_core__github_environment = "tap_plugin.github_core.falsifiers.EnvironmentFalsifier"
 github_core__actions_secret = "tap_plugin.github_core.falsifiers.ActionsSecretFalsifier"
+github_core__app_installation = "tap_plugin.github_core.falsifiers.AppInstallationFalsifier"
 
 [grift]
 repo-landing-page = "grift/repo-landing-page.grift.json"

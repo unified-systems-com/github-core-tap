@@ -53,6 +53,34 @@ Which types get one follows the shape table in github-core#14:
   freshness is the edges', re-derived every run. See ``PullRequest``, ``CodeScanningAlert`` and
   ``StatusCheck``'s own docstrings for the full reasoning per type.
 
+  ``github_release``, ``github_package`` and ``github_package_version`` join it too
+  (github-core#197): each has an existing, explicit "reference, not containment" ruling on its
+  parent's docstring (``github_repository.py`` for releases, ``github_account.py`` for packages),
+  and each listing is either page-capped (releases, ``first: 50``) or credential-shaped enough
+  (packages, ``enabledForGitHubApps: false``) that ``enumeration_complete`` could rarely be
+  honestly asserted for it. ``github_runner`` is a related but DIFFERENT gap: no edge reaches it
+  from its repository at all today (not even a reference one), so there is no parent to declare
+  containment on without first adding one — deferred as a follow-on, not ruled out on the merits
+  (see the model's own docstring).
+
+- **App installation, a fourth shape** — ``app_installation`` gets a falsifier
+  (``AppInstallationFalsifier``, github-core#197) that fits none of A/B/C. The probe is
+  ``GET /app/installations/{id}`` under the App's own JWT (``GithubAuth.app_jwt()``), never the
+  installation token a repository-scoped probe would use, so it needs no REPOSITORY reach gate
+  (github-core#157): the JWT is not asking "can this grant still see it" — it is the App asking
+  about its OWN installation. It needs a different gate instead: the endpoint
+  404s both for a revoked installation and for one that belongs to a DIFFERENT App than the one
+  this JWT authenticates as — the account's installation listing mints ``app_installation`` nodes
+  under whichever App actually registered each one, which need not be this plugin's own App. So a
+  ``not_found`` is compared against ``github_app.app_id`` (the candidate's parent) vs
+  ``GithubAuth.app_id`` (the credential's own) before it is trusted; a mismatch, or either side
+  unknown, is ``UNDETERMINED(scope_unknown)``, never a retirement. A ``found`` (200) needs no such
+  gate — GitHub cannot hand this JWT another App's installation. A PAT-only credential cannot mint
+  a JWT at all and answers ``UNDETERMINED(scope_unknown)`` for every candidate rather than
+  attempting a call it structurally cannot make. Containment is declared on ``GithubApp``
+  (``REGISTERS_INSTALLATION``): see both models' docstrings for why the security-relevant absence
+  here is the installation, never the application.
+
 ``Expected.owner`` is the parent's source identity read off the candidate's ``parent``
 (Option A, tap#650): the account login for a repository, the repository full name for a
 workflow or an environment, the workflow id for a declared job. Where the grid holds no
@@ -86,6 +114,7 @@ from typing import Any
 from urllib.parse import quote
 
 from tap_plugin.github_core.collectors.github_collector.api_client import GithubAPIError, GithubClient
+from tap_plugin.github_core.collectors.github_collector.app_jwt import GithubAppAuthError
 from tap_plugin.github_core.collectors.github_collector.auth import GithubAuth
 from tap_plugin.github_core.collectors.github_collector.parser import parse_workflow_yaml
 from tap_plugin.github_core.collectors.github_collector.secret import api_base_url, resolve_github_secret
@@ -130,6 +159,26 @@ def _default_session() -> tuple[GithubClient, GithubAuth]:
 def _default_client() -> GithubClient:
     """The client half of the default session, for a caller that needs no reach."""
     return _default_session()[0]
+
+
+def _default_app_session() -> tuple[GithubClient, GithubAuth]:
+    """The App's own JWT-authenticated session — the credential ``/app/installations/{id}``
+    requires (github-core#197). An installation token, which every other falsifier's default
+    session mints, cannot call this endpoint at all; only the App's JWT identifies the caller as
+    the application itself.
+
+    Raises ``GithubAppAuthError`` when the envelope carries no App credential — a PAT-only
+    envelope cannot mint a JWT, and ``AppInstallationFalsifier`` turns that into
+    ``UNDETERMINED(scope_unknown)`` for every candidate rather than attempting a call it
+    structurally cannot make.
+    """
+    secret = resolve_github_secret()
+    data = dict(secret.data)
+    auth = GithubAuth(kind=secret.kind, data=data, api_base_url=api_base_url(data))
+    if not auth.has_app:
+        raise GithubAppAuthError("no App credential in the envelope: /app/installations/{id} is App-only")
+    client = GithubClient(token=auth.app_jwt(), api_base_url=api_base_url(data), retry_empty_404=False)
+    return client, auth
 
 
 def probe_status_of(exc: GithubAPIError) -> str:
@@ -690,6 +739,128 @@ class ActionsSecretFalsifier(_GithubFalsifier):
         return verdict_from_probe(candidate, expected, probe)
 
 
+class AppInstallationFalsifier(_GithubFalsifier):
+    """A fourth shape (github-core#197): ``GET /app/installations/{id}`` under the App's own JWT.
+
+    Every other falsifier in this module probes with the collector's installation-scoped
+    credential and gates a 404 against that credential's REACH (github-core#157) — a repository
+    the installation was never granted answers 404 for a reason that has nothing to do with the
+    object's existence. This falsifier's question is different in kind: the App is asking about
+    its OWN installation, and its JWT can name any installation of itself regardless of what that
+    installation was ever granted.
+
+    That "its own" is load-bearing, and a 404 is NOT unconditionally unambiguous: the account's
+    installation listing (``_collect_app_installations``) mints an ``app_installation`` under
+    whichever App actually
+    registered it, which may be a DIFFERENT App than the one this plugin's own credential
+    authenticates as (Dependabot, or any other third party the account installed). GitHub's
+    endpoint 404s both for an installation this App never had and for one that was genuinely
+    revoked — the same two-readings-under-one-status-line shape ``reach.py`` exists for, just
+    keyed on App identity instead of repository membership. So ``judge`` compares the
+    candidate's parent (``github_app.app_id``) against the credential's own App id
+    (``GithubAuth.app_id``) BEFORE trusting a ``not_found``: a mismatch, or either side unknown,
+    answers ``UNDETERMINED(scope_unknown)`` rather than a retirement. A ``found`` (200) needs no
+    such gate — GitHub cannot hand this JWT another App's installation, so a 200 is unconditional
+    proof either way.
+
+    The credential itself is the one thing that CAN be absent: a PAT-only envelope cannot mint a
+    JWT at all (``GithubAuth.has_app`` is ``False``), which ``_default_app_session`` raises on and
+    this falsifier turns into ``UNDETERMINED(scope_unknown)`` for every candidate, never a crash
+    and never a silent "found nothing".
+    """
+
+    def __init__(
+        self,
+        client: ProbeClient | None = None,
+        client_factory: Callable[[], ProbeClient] | None = None,
+        session_factory: Callable[[], tuple[ProbeClient, Any]] | None = None,
+        credential_app_id: int | str | None = None,
+    ) -> None:
+        super().__init__(
+            client=client,
+            client_factory=client_factory,
+            session_factory=session_factory or _default_app_session,
+        )
+        #: A caller-pinned App id (tests). ``None`` means "read it off ``self._auth``", which is
+        #: itself ``None`` for an injected client with no session behind it — the same "an
+        #: injected client proves nothing about the credential" discipline `_resolve_reach` uses.
+        self._injected_app_id = credential_app_id
+
+    def _credential_app_id(self) -> int | str | None:
+        if self._injected_app_id is not None:
+            return self._injected_app_id
+        return getattr(self._auth, "app_id", None)
+
+    def batch_falsify(self, candidates: Sequence[Candidate], context: FalsifyContext) -> list[Verdict]:
+        # Overridden rather than reusing the base class's flow: that flow resolves a REPOSITORY
+        # reach (`_resolve_reach`) which this falsifier's JWT-authenticated client cannot answer
+        # (`/installation/repositories` requires an installation token) and does not need — the
+        # App-identity gate above is this falsifier's own, different, gate.
+        self._begin_run(context.batch_id)
+        try:
+            client = self._resolve_client()
+        except GithubAppAuthError as exc:
+            note = f"no App credential: {exc}"
+            logger.info("[a9f1] AppInstallationFalsifier: %s", note)
+            return [_undetermined(c, "scope_unknown", note) for c in list(candidates)]
+        except Exception as exc:  # noqa: BLE001 — a missing credential is an answer, not a crash
+            note = f"credential unavailable: {type(exc).__name__}"
+            logger.warning("[a9f2] AppInstallationFalsifier: %s: %s", note, exc)
+            return [_undetermined(c, "errored", note) for c in list(candidates)]
+        return self.judge_all(client, list(candidates))
+
+    def judge(self, client: ProbeClient, candidate: Candidate) -> Verdict:
+        row = _row_of(candidate.entity_id)
+        if row is None:
+            return _undetermined(candidate, "errored", "the grid row could not be read")
+        installation_id = getattr(row, "installation_id", None)
+        if installation_id is None:
+            return _undetermined(
+                candidate, "scope_unknown", "the grid holds no stable id (installation_id) for this installation"
+            )
+        app_slug = str(getattr(row, "app_slug", "") or "") or None
+        parent = _row_of(candidate.parent)
+        owner = str(getattr(parent, "slug", "") or "") or None if parent is not None else None
+        expected = Expected(source_id=str(installation_id), owner=owner, name=app_slug)
+        result = self._probe_get(client, f"/app/installations/{installation_id}")
+        if isinstance(result, Probe):
+            if result.status == "not_found":
+                parent_app_id = getattr(parent, "app_id", None) if parent is not None else None
+                credential_app_id = self._credential_app_id()
+                if parent_app_id is None or credential_app_id is None:
+                    return _undetermined(
+                        candidate,
+                        "scope_unknown",
+                        "this credential's own App id could not be compared against the "
+                        "installation's App (github_app.app_id or GithubAuth.app_id unread), so a "
+                        "404 from an App-scoped endpoint cannot be trusted as absence",
+                    )
+                if str(parent_app_id) != str(credential_app_id):
+                    return _undetermined(
+                        candidate,
+                        "scope_unknown",
+                        f"this credential is App {credential_app_id}, not the installation's own App "
+                        f"{parent_app_id}: GET /app/installations/{{id}} 404s for an installation "
+                        "belonging to a different App exactly as it does for one that was revoked "
+                        "(github-core#197), so this 404 says nothing about whether the installation "
+                        "still exists",
+                    )
+            # Either `found`, or a `not_found` whose App identity was confirmed above: no reach
+            # gate and no parent probe beyond that — the App JWT already answers "does this
+            # exist" directly, once it is asking about the right App.
+            return verdict_from_probe(candidate, expected, result)
+        found_slug = str(result.get("app_slug") or "") or None
+        probe = Probe(
+            status="found",
+            source_id=str(result.get("id")) if result.get("id") is not None else None,
+            owner=found_slug if owner is not None else None,
+            name=found_slug,
+            created_at=_created_at(result),
+            detail="HTTP 200",
+        )
+        return verdict_from_probe(candidate, expected, probe)
+
+
 #: The probe recorded when a file read yields neither a record nor a failure — unreachable by
 #: construction (``_workflow_file_at_head`` always returns one of the two), kept so the fail-closed
 #: branch needs no assertion that a production build would strip.
@@ -842,6 +1013,7 @@ class WorkflowJobFalsifier(_GithubFalsifier):
 
 __all__ = [
     "ActionsSecretFalsifier",
+    "AppInstallationFalsifier",
     "EnvironmentFalsifier",
     "RepositoryFalsifier",
     "WorkflowFalsifier",
