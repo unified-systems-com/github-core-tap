@@ -4,6 +4,8 @@
 
 Cross-cutting: this spec governs `spec-github-core-v0.md`'s collector requirements wherever they reach the network, and any future GitHub-facing collector in this plugin. Where this spec and a per-surface requirement disagree about failure handling, this spec wins and the per-surface requirement is corrected.
 
+**Sibling, not overlap:** this spec's job is *what to do when a call fails*. `tap_cares/specs/spec-tap-cares-progressive-collection.md` (2026-09-29) is the sibling spec for a different question this plugin's own `req-github-core-reliability-conditional` correctly flagged and declined to answer here — *which calls this collector should not be making at all*, because the object they'd fetch is already on the grid and known not to have changed. `req-github-core-reliability-conditional` is generalized there rather than duplicated; see that requirement's entry below for the concrete mapping.
+
 ## Philosophy
 
 Three afternoons of evidence, 2026-09-11 and 2026-09-14 (github-core#128): a 504 "we couldn't respond to your request in time" fourteen seconds into a run; a connection GitHub closed after 186 seconds; a response body cut off at 219 of 248 kilobytes. Each aborted the whole collection. The collector had exactly one retry, for the empty-body 404 quirk, and the GraphQL client had none. Meanwhile a job orphaned by a worker restart sat in RUNNING for four days and blocked a dependent collector's every run, each skip recorded as green (tap#454, zizmor-tap#41).
@@ -44,7 +46,7 @@ One property this spec exists to protect for the work that follows it: **degrada
 | req-github-core-reliability-outcome | [Run Outcome](#run-outcome) | Proposed | What SUCCESSFUL and FAILED mean under degradation; single-flight per collector |
 | req-github-core-reliability-proof | [Proof](#proof) | Proposed | A fake GitHub that emits every failure class; every layer proven to degrade |
 | req-github-core-reliability-breaker | [Cross-Run Circuit Breaker](#cross-run-circuit-breaker) | Backlog | Stop calling a dependency that is down; needs state across runs |
-| req-github-core-reliability-conditional | [Conditional Requests](#conditional-requests) | Backlog | ETag / If-None-Match; an efficiency edge, not a reliability one |
+| req-github-core-reliability-conditional | [Conditional Requests](#conditional-requests) | Backlog | Generalized into `tap_cares/specs/spec-tap-cares-progressive-collection.md`; this entry now names github_core's own per-entity application |
 
 ### Failure Taxonomy
 ----
@@ -434,4 +436,21 @@ RID: `req-github-core-reliability-conditional`
 
 Status: `Backlog`
 
-`If-None-Match` / ETag on the REST surfaces: a 304 costs no rate-limit points. An efficiency edge, not a reliability one; githubkit's cache layer (hishel) may give it for free. Measure the points a healthy run spends first.
+`If-None-Match` / ETag on the REST surfaces: a 304 costs no rate-limit points. This was correctly named here as "an efficiency edge, not a reliability one" and left unbuilt; it is now specified generally at `tap_cares/specs/spec-tap-cares-progressive-collection.md`, whose mutability classification (`req-tap-cares-progressive-classification`) this plugin is the first concrete consumer of. githubkit's cache layer (hishel) may give a form of this for free once `req-github-core-reliability-client`'s migration lands — measure the points a healthy run spends first, per that spec's instrumentation requirement (`req-tap-cares-progressive-instrumentation`), before assuming it does.
+
+**github_core's own entities, classified** *(observed against the `git-serious` dev stack,
+2026-09-29 — see `github-core-tap#209`'s sibling investigation for the corpus this is sized
+against)*:
+
+| Entity | `MUTABILITY_CLASS` | Applicable mechanism |
+| --- | --- | --- |
+| `github_actions_run`, `github_actions_job` | `FROZEN_AT_TERMINAL` (`status="completed"`) | Already implemented, unlabeled: `req-tap-cares-progressive-watermark`'s two-part shape (`collector.py:6864-6952`) |
+| `code_scanning_analysis`, `rule_suite`, `commit_observation` | `FROZEN` | `req-tap-cares-progressive-watermark` — not yet adopted; each still re-walks its full (capped) listing every run |
+| `actions_artifact` | `FROZEN_CONTENT_REVOCABLE`, `SORT_KEY_MONOTONIC=True` (newest-first by creation) | `req-tap-cares-progressive-cutoff` — safe once adopted; content is immutable and the listing order is creation-based |
+| `actions_cache` | `FROZEN_CONTENT_REVOCABLE`, `SORT_KEY_MONOTONIC=False` (most-recently-*accessed*-first) | Cutoff is **not safe** here — needs a true watermark (`req-tap-cares-progressive-watermark`) instead; this is the taxonomy's own worked counter-example |
+| `github_workflow` (YAML body) | `VERSIONED_CONTENT` (`FINGERPRINT_FIELD` = the Contents API's blob `sha`, not yet stored) | `req-tap-cares-progressive-secondary-skip` — the single cheapest win available: 250 workflows *(observed)*, each unconditionally refetched in full today (`collector.py:6987`) |
+| `pull_request` | `MUTABLE`, with `updated_at` as an existing freshness ordering (`graphql_client.py:233`, already `orderBy: {field: UPDATED_AT, direction: DESC}`) | Not skippable, but the existing ordering is exactly what a freshness-bounded re-check (`req-tap-cares-progressive-cutoff`'s freshness-field variant) would key on once wired up |
+| `code_scanning_alert` | `MUTABLE` (state can legitimately change: open/dismissed/fixed) | Not a candidate for any mechanism in the progressive-collection spec. Separately worth its own look regardless: today's walk pages up to 100 times with no `state` filter passed (`collector.py:4629`, `4826`), a likely larger and unrelated win |
+| `github_environment`, `github_ruleset`, `github_runner`, `actions_secret` | `MUTABLE` | No skip; unchanged from today |
+
+None of the above is implemented by this entry — it is the classification `req-tap-cares-progressive-classification` asks every collector to write down, done here as the first worked application, so the general spec is reviewed against a real case rather than in the abstract.
