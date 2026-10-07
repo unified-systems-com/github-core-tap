@@ -77,7 +77,7 @@ Observed distribution 2026-09-10: 41 workflows carry the tag, 35 with `scopes_re
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#104 (2026-09-10) — the build issue: three scopes, case-insensitivity, the three-states tag, and the named blind spots.
+- unified-systems-com/github-core-tap#104 (2026-09-10) — the build issue: three scopes, case-insensitivity, the three-states tag, and the named blind spots.
 - `specs/spec-github-core-app-permissions.md` — the ledger entries for `secrets` and `organization_secrets`, each moved from `deferred` to `requested` by this work, as the deferred entries said they should be.
 - [`github_workflow`](github_workflow.md) — where a reference is typed, and where `tags.secret_refs` records the resolution.
 - [`github_environment`](github_environment.md) — the third scope, and one of the three holders on `DEFINES_SECRET`.

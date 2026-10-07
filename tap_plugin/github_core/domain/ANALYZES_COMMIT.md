@@ -42,7 +42,7 @@ Emitted from the analyses read (`repository:security_events:read`) and present o
 ## Prior Art
 
 - Operator ruling, session double-tap-git-serious (2026-09-09; github-core#89) — the commit edge as conditional, absence ≠ not analysed.
-- unified-systems-com/tap-plugin-github-core#76 rev 2 (2026-09-08) — the neutral commit and the rule that a forge edge onto it is drawn only when the commit was observed (`PROPOSES_COMMIT`, `OBSERVES_COMMIT` follow the same rule).
+- unified-systems-com/github-core-tap#76 rev 2 (2026-09-08) — the neutral commit and the rule that a forge edge onto it is drawn only when the commit was observed (`PROPOSES_COMMIT`, `OBSERVES_COMMIT` follow the same rule).
 - `git_core/domain/git_commit.md` (2026-09-08) — one commit node per `(hash_algorithm, oid)` however many hosts observe it.
 - OASIS SARIF 2.1.0 (2020-03-27) — `run.versionControlProvenance[].revisionId`: the standard's own commit pointer on a run.
 

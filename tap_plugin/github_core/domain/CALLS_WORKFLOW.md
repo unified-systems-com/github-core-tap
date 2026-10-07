@@ -55,7 +55,7 @@ Observed on the unified-systems-com grid on 2026-09-02 (pre-edge, from `workflow
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `CALLS_WORKFLOW` `{pin_kind, ref}`, self tier; the source-end correction is recorded there on 2026-09-02.
-- unified-systems-com/tap-plugin-github-core#29 (2026-09-02) — the two invisible structures, the three-state rule for an unresolved callee, and the done-test (`plugin-ci` ≥ 13 inbound).
+- unified-systems-com/github-core-tap#29 (2026-09-02) — the two invisible structures, the three-state rule for an unresolved callee, and the done-test (`plugin-ci` ≥ 13 inbound).
 - `git-serious-tap` *The Shape of a Pipeline* §6 (2026-08) — "one reusable gate, thirteen callers" and the untrusted→privileged handoff.
 - [`USES_ACTION`](USES_ACTION.md) (2026-09-02) — the pin grammar this edge reuses rather than re-deriving.
 

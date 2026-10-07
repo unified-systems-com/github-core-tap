@@ -48,7 +48,7 @@ Derived from the REST ruleset detail at **`repository:administration:read`** (th
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `REQUIRES_CHECK` `{enforcement}`; the property is replaced here by the rule's own qualifiers, and the reason is recorded.
-- unified-systems-com/tap-plugin-github-core#61 (2026-09-02) — the bake issue.
+- unified-systems-com/github-core-tap#61 (2026-09-02) — the bake issue.
 - [`PROTECTS`](../edges/PROTECTS.edge.json) — the ruleset's other outbound edge; together they say what is protected and what must pass.
 
 ## Endpoints

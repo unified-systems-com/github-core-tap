@@ -79,6 +79,16 @@ class GithubAuth:
         return bool(self._app.get("private_key"))
 
     @property
+    def app_id(self) -> int | str | None:
+        """This envelope's own App id — the identity a `GET /app/installations/{id}` probe under
+        this JWT is actually scoped to. The endpoint answers `404` both for a revoked installation
+        and for one that belongs to a DIFFERENT App this JWT was never issued for, and the two
+        must not be told apart by status code alone (github-core#197). `None` when the envelope
+        carries no App credential.
+        """
+        return self._app.get("app_id") if self.has_app else None
+
+    @property
     def has_pat(self) -> bool:
         """Whether a personal access token is present."""
         return bool(self._pat.get("token"))

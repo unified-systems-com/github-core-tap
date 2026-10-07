@@ -67,10 +67,10 @@ Executed 2026-09-15 on a spawned stack (`gc-scope-node`, App credential, owner `
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#145 (2026-09-14) — the build issue: George's ruling that scope is a node on the operation side, the field table, the two seams.
-- unified-systems-com/tap-plugin-github-core#141 / PR# 144 - github-core — the `INSTALLATION_SELECTION` record whose shape this node carries verbatim.
-- unified-systems-com/tap-plugin-github-core#15 — the visibility assessment, which writes `visibility`.
-- unified-systems-com/tap-plugin-github-core#136 — reliability 1b, which writes `tiers`; the agreed shape and reason vocabulary are enforced by this model's schema.
+- unified-systems-com/github-core-tap#145 (2026-09-14) — the build issue: George's ruling that scope is a node on the operation side, the field table, the two seams.
+- unified-systems-com/github-core-tap#141 / PR# 144 - github-core — the `INSTALLATION_SELECTION` record whose shape this node carries verbatim.
+- unified-systems-com/github-core-tap#15 — the visibility assessment, which writes `visibility`.
+- unified-systems-com/github-core-tap#136 — reliability 1b, which writes `tiers`; the agreed shape and reason vocabulary are enforced by this model's schema.
 - unified-systems-com/tap#140 — the repository falsifier that reads this node before trusting an absence.
 - `specs/spec-github-core-v0.md` (`req-github-core-app-installations`) — `app_installation`, the grant this scope is derived from, when there is one.
 - `tap_cares/specs/spec-tap-cares-collector.md` — `collection_job`, the run this is a statement about, and `CollectorConfig`, which hands the collector its job id.

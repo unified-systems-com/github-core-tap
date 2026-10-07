@@ -53,8 +53,8 @@ GraphQL is chosen over REST because it is the only transport that carries `revie
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `pull_request`, self tier, 10 sources, neutral-capable; `OPENS_PULL_REQUEST` `{author_association}`.
-- unified-systems-com/tap-plugin-github-core#82 (2026-09-08) — the bake issue and the github_core-not-git_core ruling.
-- unified-systems-com/tap-plugin-github-core#76 rev 2 (2026-09-08) — git_core's scope; pull requests named as a forge-collaboration non-goal.
+- unified-systems-com/github-core-tap#82 (2026-09-08) — the bake issue and the github_core-not-git_core ruling.
+- unified-systems-com/github-core-tap#76 rev 2 (2026-09-08) — git_core's scope; pull requests named as a forge-collaboration non-goal.
 - `git-serious-tap/specs/spec-git-serious-why-not-merging.md` and `spec-git-serious-waiting-on-me.md` (2026-09-02) — the two consumers this node exists for.
 - GitHub Docs, "About status checks" (as of 2026-09) — check runs versus commit statuses, and why a required context may be either.
 

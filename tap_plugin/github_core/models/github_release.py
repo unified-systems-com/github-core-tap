@@ -20,6 +20,16 @@ class GithubRelease(BaseModel):
     `github.observation: execution` for that reason, even though it arrives in the config-layer
     GraphQL query beside rulesets and refs (transport is not layer).
 
+    Reconciliation (github-core#14, github-core#197): no falsifier, no containment — already the
+    ruling on record. `GithubRepository`'s own docstring lists releases under "references or
+    immutable events: none retires with the repository through the cascade, and none is a
+    candidate surface," and the observability section above says why that holds up: the
+    `repository.releases` connection is capped (`first: 50`, newest-first) and truncation is
+    reported rather than treated as an exhaustive walk, so `enumeration_complete` could never be
+    honestly asserted for it. Same shape as `actions_artifact` (Shape C) for that reason, even
+    though a release is not strictly immutable (it can be edited or unpublished) — the listing
+    that would have to prove its absence cannot prove anything at all.
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-releases)
     """
 

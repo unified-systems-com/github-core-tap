@@ -1,7 +1,7 @@
 """github-gates — one row per repository: what gates its default branch, and what we cannot see.
 
 Spec: plugins/github_core/specs/spec-github-core-gates-panel.md (req-github-core-gates-panel).
-Issue: unified-systems-com/tap-plugin-github-core#65.
+Issue: unified-systems-com/github-core-tap#65.
 
 The gate posture of a repository is a join the graph already holds, edge by edge:
 

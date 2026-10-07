@@ -47,7 +47,7 @@ Observed 2026-09-10 on `unified-systems-com`: **5 edges** — 2 from the account
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#104 (2026-09-10) — the build issue, including why repository-only collection produces confident wrong answers.
+- unified-systems-com/github-core-tap#104 (2026-09-10) — the build issue, including why repository-only collection produces confident wrong answers.
 - [`REFERENCES_SECRET`](REFERENCES_SECRET.md) — the consumption half of the pair.
 - [`DECLARES_ENVIRONMENT`](DECLARES_ENVIRONMENT.md) — how the third holder gets onto the grid in the first place.
 

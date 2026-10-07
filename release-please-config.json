@@ -6,11 +6,16 @@
   "bump-patch-for-minor-pre-major": true,
   "packages": {
     ".": {
-      "package-name": "tap-plugin-github-core",
+      "package-name": "github-core-tap",
       "extra-files": [
         {
           "type": "generic",
           "path": "tap_plugin/github_core/tap-plugin.toml"
+        },
+        {
+          "type": "json",
+          "path": "tap_plugin/github_core/boot/ci.boot.json",
+          "jsonpath": "$.install.plugins[?(@.slug=='github_core')].source.rev"
         }
       ]
     }

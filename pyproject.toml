@@ -2,7 +2,7 @@
 #
 # Identity chain (pre-boot conformance gate enforces agreement):
 #   slug             = "github_core"
-#   distribution     = "tap-plugin-github-core"
+#   distribution     = "github-core-tap"
 #   import namespace = "tap_plugin.github_core"   (PEP 420 — no tap_plugin/__init__.py)
 #   entry-point key  = "github_core"              (== slug)
 #
@@ -11,7 +11,7 @@
 # NOT via `uv sync --all-packages`. Its Tier-0 deps (PyYAML) travel with it and uv
 # resolves them at plugin-install time (req-plugin-arch-dependencies-1).
 [project]
-name = "tap-plugin-github-core"
+name = "github-core-tap"
 description = "TAP GitHub Core plugin — GitHub Actions deployment plumbing for samsite."
 requires-python = ">=3.14"
 dynamic = ["version"]

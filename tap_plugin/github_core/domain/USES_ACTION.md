@@ -66,7 +66,7 @@ Observed on the unified-systems-com grid on 2026-09-02, from the pre-edge `actio
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `USES_ACTION` `{pin_kind, pinned_sha, declared_ref, resolves_to_fork}`; finding 2, bare edges are ruled out by the field. `pinned_sha` became `resolved_sha` here because the value is what a name resolved *to*, not what was pinned.
 - `git-serious-tap/docs/doc-git-serious-cicd-security-prior-art.md` (2026-08-27) — the action-pinning observable conditions the static analysers already check, all of which read from this edge's properties.
 - OpenSSF Scorecard `Pinned-Dependencies` check (as of 2026-09) — an independent implementation of the same one-bit question `is_pinned` carries; the reason that bit is explicit rather than re-derived per view.
-- unified-systems-com/tap-plugin-github-core#45 (2026-09-02) — the bake issue and done-test.
+- unified-systems-com/github-core-tap#45 (2026-09-02) — the bake issue and done-test.
 
 ## Endpoints
 

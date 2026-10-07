@@ -15,6 +15,13 @@ from tap_grid.models import BaseModel
 class GithubPackageVersion(BaseModel):
     """One version as GitHub Packages reports it, with the tags that point at it.
 
+    Reconciliation (github-core#14, github-core#197): no falsifier, no containment, for the same
+    reason as its own package (`GithubPackage`'s docstring) one level up — the versions listing
+    inherits the package listing's App-credential limits (`GET
+    /orgs/{owner}/packages/{type}/{name}/versions`, same `enabledForGitHubApps: false` surface)
+    and is "reached only through the listing" (Observability, above): when the package's own
+    completeness cannot be trusted, nothing about its versions can be walked to exhaustion either.
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-packages)
     """
 

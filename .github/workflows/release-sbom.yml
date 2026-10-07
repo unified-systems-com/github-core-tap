@@ -1,4 +1,4 @@
-# Release SBOM + attestations for tap-plugin-github-core.
+# Release SBOM + attestations for github-core-tap.
 #
 # A thin caller (the plugin-ci.yml pattern): on every release tag push, the
 # reusable workflow in the core TAP repo builds the wheel at the tag, generates
@@ -24,6 +24,6 @@ jobs:
       contents: read
       id-token: write
       attestations: write
-    uses: unified-systems-com/tap/.github/workflows/plugin-release-sbom.yml@main
+    uses: unified-systems-com/tap/.github/workflows/plugin-release-sbom.yml@baf481c0572c0210c8a89e9c86e552616c7e886c # main
     with:
       plugin_slug: github_core

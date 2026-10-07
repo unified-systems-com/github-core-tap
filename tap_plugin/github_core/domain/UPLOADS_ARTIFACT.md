@@ -47,7 +47,7 @@ Observed 2026-09-02 with a classic `repo`-scoped token; not yet observed with th
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `UPLOADS_ARTIFACT` `{cross_workflow}`; the property moved to the declared download step, where it is derivable, and the source moved to the run, where it is exact.
-- unified-systems-com/tap-plugin-github-core#55 (2026-09-02) — the bake issue.
+- unified-systems-com/github-core-tap#55 (2026-09-02) — the bake issue.
 - [`EXECUTES_WORKFLOW`](EXECUTES_WORKFLOW.md) — the precedent for an exact, property-free execution-side join.
 
 ## Endpoints

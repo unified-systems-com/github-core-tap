@@ -1,7 +1,7 @@
 """The gates panel: one row per repository, three states, never two (req-github-core-gates-panel).
 
 Spec: plugins/github_core/specs/spec-github-core-gates-panel.md
-Issue: unified-systems-com/tap-plugin-github-core#65
+Issue: unified-systems-com/github-core-tap#65
 
 Two layers. ``build_rows`` is pure over envelopes, so the derivation is pinned against hand-built
 graphs. One test builds the graph through the service layer and reads it back through the

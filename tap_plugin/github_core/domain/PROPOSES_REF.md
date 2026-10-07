@@ -37,7 +37,7 @@ Emitted from the config-layer read; present only when `headRepository.nameWithOw
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#82 (2026-09-08) — the bake issue and the dangling-edge rule.
+- unified-systems-com/github-core-tap#82 (2026-09-08) — the bake issue and the dangling-edge rule.
 - git_core's `DECLARES_REF` (2026-09-08, github-core#76) — the neutral ref this edge lands on.
 
 ## Endpoints

@@ -1,7 +1,7 @@
 """Actions used: the `uses:` line as a node and an edge (req-github-core-actions-used).
 
 Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-actions-used)
-Issue: unified-systems-com/tap-plugin-github-core#45
+Issue: unified-systems-com/github-core-tap#45
 
 The tests that matter most are about what a PIN proves. `actions/checkout@v4` is a name someone
 else can repoint; the old parser called it a `tag`, which the string cannot know. On the

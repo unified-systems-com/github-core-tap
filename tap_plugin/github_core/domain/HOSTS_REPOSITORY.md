@@ -36,7 +36,7 @@ Emitted by the collector from the same config-layer read that produced its endpo
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#76 rev 2 (2026-09-08) — the extraction rulings this edge implements.
+- unified-systems-com/github-core-tap#76 rev 2 (2026-09-08) — the extraction rulings this edge implements.
 - `specs/spec-github-core-vocabulary.md` — the concept table rows for the endpoints.
 
 ## Endpoints

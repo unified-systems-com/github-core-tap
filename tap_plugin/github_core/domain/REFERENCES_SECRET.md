@@ -68,7 +68,7 @@ Two ways a scope loses its place in `scopes_read`, and the second is the one tha
 
 ## Prior Art
 
-- unified-systems-com/tap-plugin-github-core#104 (2026-09-10) — the build issue, the blind spots, and the done-test.
+- unified-systems-com/github-core-tap#104 (2026-09-10) — the build issue, the blind spots, and the done-test.
 - [`DEFINES_SECRET`](DEFINES_SECRET.md) — the holding half of the pair.
 - [`actions_secret`](actions_secret.md) — why names alone answer both questions, and why no value can cross this boundary.
 

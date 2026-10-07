@@ -68,7 +68,7 @@ The previous parser called every non-SHA ref `tag`. That was a declaration that 
 - `skills/build-github-corpus/SKILL.md` (2026-09-02) — ranked this concept first: highest incident weight among the gaps reachable with the credential union already held, and a convergence node.
 - `git-serious-tap/docs/doc-git-serious-cicd-security-prior-art.md` (2026-08-27) — the tag-repoint incident family; "pinned to v4 is a promise someone else keeps".
 - Octicons v19.15.1 — the `github-action` glyph is **absent** from the icons directory (retired); the icon here is TAP-drawn.
-- unified-systems-com/tap-plugin-github-core#45 (2026-09-02) — the bake issue: known versus assumed, the absence shape, the done-test.
+- unified-systems-com/github-core-tap#45 (2026-09-02) — the bake issue: known versus assumed, the absence shape, the done-test.
 
 ## Fields
 

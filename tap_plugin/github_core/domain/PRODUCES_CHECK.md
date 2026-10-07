@@ -50,7 +50,7 @@ Emitted only toward a [`status_check`](status_check.md) node (a context some rul
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `PRODUCES_CHECK` `{confidence}` — "honest about inference".
-- unified-systems-com/tap-plugin-github-core#61 (2026-09-02) — the bake issue and the matrix-name trap.
+- unified-systems-com/github-core-tap#61 (2026-09-02) — the bake issue and the matrix-name trap.
 - [`DEFINES_JOB`](../edges/DEFINES_JOB.edge.json) — the workflow → job edge whose target's `name` this derivation reads.
 
 ## Endpoints

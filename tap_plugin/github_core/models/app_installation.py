@@ -21,6 +21,41 @@ class AppInstallation(BaseModel):
     access token gets `404` from it — so this type is populated only when the
     collector authenticates as an App (`req-github-core-app-auth`).
 
+    Reconciliation (github-core#14, github-core#197): the security-relevant absence in this
+    whole plugin — an uninstalled App is a revoked standing capability, not a historical record —
+    so this is the one of the five previously-uncovered types (github-core#197) that gets both a
+    falsifier and a `CONTAINMENT_EDGES` entry (on `GithubApp`, via `REGISTERS_INSTALLATION`).
+
+    The falsifier (`tap_plugin.github_core.falsifiers.AppInstallationFalsifier`) does not fit
+    shapes A/B/C: it probes `GET /app/installations/{installation_id}` under the App's own JWT
+    (`GithubAuth.app_jwt()`), never the installation token. That distinction is why it needs no
+    REPOSITORY reach gate the way `RepositoryFalsifier` does (github-core#157) — the JWT is not
+    asking "can THIS grant still see it", it is the App asking about its OWN installation.
+
+    It needs a DIFFERENT gate instead: the account's installation listing
+    (`_collect_app_installations`) mints an `app_installation` under whichever App actually
+    registered it — which may not be this plugin's own App (a third party the account also
+    installed). `GET /app/installations/{id}` 404s identically for a revoked installation and for
+    one belonging to an App this JWT was never issued for, so `judge` compares the candidate's
+    parent (`github_app.app_id`) against the credential's own App id (`GithubAuth.app_id`) before
+    trusting a `not_found`; a mismatch, or either side unread, answers
+    `UNDETERMINED(scope_unknown)` rather than a retirement. A `found` (200) needs no such gate —
+    GitHub cannot hand this JWT another App's installation.
+
+    A PAT-only credential cannot mint a JWT at all (`GithubAuth.has_app` is `False`), so the
+    falsifier answers `UNDETERMINED(scope_unknown)` for every candidate rather than attempting a
+    call it cannot make.
+
+    **What this declaration does NOT yet do.** The collector does not currently author a
+    `tap_grid.completeness` surface for the installation listing (only the account's repository
+    listing and each repository's workflows/environments are recorded today), so no candidate of
+    this type is produced by a live run yet — the falsifier has nothing to be handed. Declaring
+    `CONTAINMENT_EDGES` here is still correct and not inert: it immediately enables the
+    DELETE-CASCADE half (`delete_node(..., cascade="contained")` on a `GithubApp` row now retires
+    its installations instead of orphaning them), and it is the necessary precondition for the
+    candidate-generation half once the completeness-authoring gap closes (a follow-on, not part of
+    this change).
+
     Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-app-installations)
     """
 

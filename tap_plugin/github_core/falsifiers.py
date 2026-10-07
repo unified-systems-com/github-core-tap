@@ -25,9 +25,61 @@ Which types get one follows the shape table in github-core#14:
   credential's view", which is all the listing ever claimed), and a found object is compared
   by its stable numeric id and — for a repository — by its owner login, so a transfer ends
   the ownership edge rather than retiring the repository.
+- **Shape B, no stable id** — ``actions_secret`` (github-core#866, the deletion-detection half
+  of the duplication fix). ``GET .../actions/secrets/{name}`` at whichever of the three URL
+  shapes ``row.scope`` names (organization / repository / environment): 404 is ``not_found``,
+  routed through the same reach-gated ``_absence_verdict`` as every other type here. GitHub's
+  secrets API returns only a name and timestamps — no numeric id, nothing independent of the
+  name the URL already asked for — so a ``found`` probe's own identity claim IS the name it
+  was given, never an id the source reports back. ``REIDENTIFIED`` and ``RELOCATED`` are
+  therefore structurally unreachable for this type: there is nothing beyond "found" or "not
+  found" for the probe to compare. Only the repository scope is a retirement candidate today
+  (``GithubRepository.CONTAINMENT_EDGES``); organization and environment scope remain
+  references (``GithubAccount``, ``GithubEnvironment``), so ``ActionsSecretFalsifier`` judges
+  all three shapes correctly but is only ever called with repository-scoped candidates until
+  that widens.
 - **Shape C, immutable events** — ``github_actions_run`` and ``github_actions_job`` get NO
   falsifier on purpose: no containment edge reaches them, so they are never candidates, and
   a run does not stop having happened when GitHub ages it out.
+
+  ``pull_request``, ``code_scanning_alert`` and ``status_check`` join this shape (github-core#194;
+  an earlier audit flagged all three as "arguably event-like, no clear docstring stance" — this
+  is that stance, with the reasoning on each model). A PR or an alert never leaves GitHub's API
+  on close/merge or dismiss/fix — only ``state`` changes, which the collector already re-observes
+  — and neither has any edge targeting it that a model could declare as containment, so both are
+  structurally unreachable by ``tap_grid.candidates`` regardless. ``status_check`` is further out:
+  it names no GitHub resource at all, only a context string two declarations (``REQUIRES_CHECK``,
+  ``PRODUCES_CHECK``) happen to agree on, so a falsifier would have nothing to probe — its
+  freshness is the edges', re-derived every run. See ``PullRequest``, ``CodeScanningAlert`` and
+  ``StatusCheck``'s own docstrings for the full reasoning per type.
+
+  ``github_release``, ``github_package`` and ``github_package_version`` join it too
+  (github-core#197): each has an existing, explicit "reference, not containment" ruling on its
+  parent's docstring (``github_repository.py`` for releases, ``github_account.py`` for packages),
+  and each listing is either page-capped (releases, ``first: 50``) or credential-shaped enough
+  (packages, ``enabledForGitHubApps: false``) that ``enumeration_complete`` could rarely be
+  honestly asserted for it. ``github_runner`` is a related but DIFFERENT gap: no edge reaches it
+  from its repository at all today (not even a reference one), so there is no parent to declare
+  containment on without first adding one — deferred as a follow-on, not ruled out on the merits
+  (see the model's own docstring).
+
+- **App installation, a fourth shape** — ``app_installation`` gets a falsifier
+  (``AppInstallationFalsifier``, github-core#197) that fits none of A/B/C. The probe is
+  ``GET /app/installations/{id}`` under the App's own JWT (``GithubAuth.app_jwt()``), never the
+  installation token a repository-scoped probe would use, so it needs no REPOSITORY reach gate
+  (github-core#157): the JWT is not asking "can this grant still see it" — it is the App asking
+  about its OWN installation. It needs a different gate instead: the endpoint
+  404s both for a revoked installation and for one that belongs to a DIFFERENT App than the one
+  this JWT authenticates as — the account's installation listing mints ``app_installation`` nodes
+  under whichever App actually registered each one, which need not be this plugin's own App. So a
+  ``not_found`` is compared against ``github_app.app_id`` (the candidate's parent) vs
+  ``GithubAuth.app_id`` (the credential's own) before it is trusted; a mismatch, or either side
+  unknown, is ``UNDETERMINED(scope_unknown)``, never a retirement. A ``found`` (200) needs no such
+  gate — GitHub cannot hand this JWT another App's installation. A PAT-only credential cannot mint
+  a JWT at all and answers ``UNDETERMINED(scope_unknown)`` for every candidate rather than
+  attempting a call it structurally cannot make. Containment is declared on ``GithubApp``
+  (``REGISTERS_INSTALLATION``): see both models' docstrings for why the security-relevant absence
+  here is the installation, never the application.
 
 ``Expected.owner`` is the parent's source identity read off the candidate's ``parent``
 (Option A, tap#650): the account login for a repository, the repository full name for a
@@ -62,6 +114,7 @@ from typing import Any
 from urllib.parse import quote
 
 from tap_plugin.github_core.collectors.github_collector.api_client import GithubAPIError, GithubClient
+from tap_plugin.github_core.collectors.github_collector.app_jwt import GithubAppAuthError
 from tap_plugin.github_core.collectors.github_collector.auth import GithubAuth
 from tap_plugin.github_core.collectors.github_collector.parser import parse_workflow_yaml
 from tap_plugin.github_core.collectors.github_collector.secret import api_base_url, resolve_github_secret
@@ -106,6 +159,26 @@ def _default_session() -> tuple[GithubClient, GithubAuth]:
 def _default_client() -> GithubClient:
     """The client half of the default session, for a caller that needs no reach."""
     return _default_session()[0]
+
+
+def _default_app_session() -> tuple[GithubClient, GithubAuth]:
+    """The App's own JWT-authenticated session — the credential ``/app/installations/{id}``
+    requires (github-core#197). An installation token, which every other falsifier's default
+    session mints, cannot call this endpoint at all; only the App's JWT identifies the caller as
+    the application itself.
+
+    Raises ``GithubAppAuthError`` when the envelope carries no App credential — a PAT-only
+    envelope cannot mint a JWT, and ``AppInstallationFalsifier`` turns that into
+    ``UNDETERMINED(scope_unknown)`` for every candidate rather than attempting a call it
+    structurally cannot make.
+    """
+    secret = resolve_github_secret()
+    data = dict(secret.data)
+    auth = GithubAuth(kind=secret.kind, data=data, api_base_url=api_base_url(data))
+    if not auth.has_app:
+        raise GithubAppAuthError("no App credential in the envelope: /app/installations/{id} is App-only")
+    client = GithubClient(token=auth.app_jwt(), api_base_url=api_base_url(data), retry_empty_404=False)
+    return client, auth
 
 
 def probe_status_of(exc: GithubAPIError) -> str:
@@ -571,6 +644,223 @@ class EnvironmentFalsifier(_GithubFalsifier):
         return verdict_from_probe(candidate, expected, probe)
 
 
+class ActionsSecretFalsifier(_GithubFalsifier):
+    """Shape B with no stable id: ``GET`` a single secret at whichever of three URL shapes
+    ``row.scope`` names, and compare presence only (github-core#866).
+
+    GitHub's secrets API returns ``{name, created_at, updated_at, visibility (org only)}`` —
+    never a numeric id, and never anything about the object that was not already in the URL
+    used to ask for it. Every other falsifier in this module compares a source-reported id
+    (or, for a job, a workflow id GitHub's Actions record carries independently of the file
+    path used to reach it) against what the grid holds; a secret offers nothing like that.
+
+    So ``Expected.source_id`` and a found ``Probe.source_id`` are both set to the row's own
+    canonical (upper-cased) name — the same value the URL was built from, never an
+    independently-reported one — which makes them equal by construction whenever anything is
+    found. ``owner`` and ``name`` are left uncompared (``None`` on both sides): the address a
+    secret is probed at already encodes its full location (scope, owner/repository, and for an
+    environment secret, the environment), so there is no separate "owner" or "name" the source
+    could report that would mean a transfer or a rename. Concretely, this means
+    **``REIDENTIFIED`` and ``RELOCATED`` can never be the verdict for this type** — a ``found``
+    probe is always ``PRESENT_AT_PROBE``, and the only other reachable verdicts are
+    ``DROPPED_FROM_OBSERVATION`` (via the same reach-gated ``_absence_verdict`` every other
+    type here uses) and ``UNDETERMINED``.
+
+    ``row.scope`` selects the path: ``organization`` (``GET
+    /orgs/{owner}/actions/secrets/{name}``), ``repository`` (``GET
+    /repos/{owner}/{repo}/actions/secrets/{name}``), or ``environment`` (``GET
+    /repos/{owner}/{repo}/environments/{environment}/secrets/{name}``). The repository and
+    environment shapes live inside a repository, so a 404 there is judged against a probe of
+    that repository (``parent_probe=True``, exactly like ``EnvironmentFalsifier``); an
+    organization secret has no containing repository to probe or to check reach against, so
+    it is judged with ``parent_probe=False`` and an empty ``full_name`` — which, correctly,
+    means ``Reach.holds_repository`` can never say yes for it, so an organization secret's
+    absence is always ``UNDETERMINED(scope_unknown)`` until the reach model grows an
+    account-level notion of reach.
+    """
+
+    def judge(self, client: ProbeClient, candidate: Candidate) -> Verdict:
+        row = _row_of(candidate.entity_id)
+        if row is None:
+            return _undetermined(candidate, "errored", "the grid row could not be read")
+        name = str(getattr(row, "name", "") or "")
+        scope = str(getattr(row, "scope", "") or "")
+        if not name or scope not in ("organization", "repository", "environment"):
+            return _undetermined(
+                candidate, "scope_unknown", "the grid holds no name or a recognised scope for this secret"
+            )
+        owner_login = str(getattr(row, "owner_login", "") or "")
+        full_name = str(getattr(row, "full_name", "") or "")
+        environment_name = str(getattr(row, "environment_name", "") or "")
+        if scope == "organization":
+            if not owner_login:
+                return _undetermined(
+                    candidate, "scope_unknown", "the grid holds no owner login for this organisation secret"
+                )
+            path = f"/orgs/{owner_login}/actions/secrets/{quote(name, safe='')}"
+            parent_probe = False
+        elif scope == "repository":
+            if "/" not in full_name:
+                return _undetermined(
+                    candidate, "scope_unknown", "the grid holds no repository locator for this secret"
+                )
+            path = f"/repos/{full_name}/actions/secrets/{quote(name, safe='')}"
+            parent_probe = True
+        else:
+            if "/" not in full_name or not environment_name:
+                return _undetermined(
+                    candidate,
+                    "scope_unknown",
+                    "the grid holds no repository locator or environment name for this secret",
+                )
+            path = (
+                f"/repos/{full_name}/environments/{quote(environment_name, safe='')}/secrets/"
+                f"{quote(name, safe='')}"
+            )
+            parent_probe = True
+        # No owner, no name: the address already IS the full location, so there is nothing left
+        # for a found probe to disagree with the grid about besides existence.
+        expected = Expected(source_id=name, owner=None, name=None)
+        result = self._probe_get(client, path)
+        if isinstance(result, Probe):
+            if result.status == "not_found":
+                return self._absence_verdict(
+                    client, candidate, expected, result, full_name=full_name, parent_probe=parent_probe
+                )
+            return verdict_from_probe(candidate, expected, result)
+        probe = Probe(
+            status="found",
+            source_id=name,
+            owner=None,
+            name=None,
+            created_at=_created_at(result),
+            detail="HTTP 200",
+        )
+        return verdict_from_probe(candidate, expected, probe)
+
+
+class AppInstallationFalsifier(_GithubFalsifier):
+    """A fourth shape (github-core#197): ``GET /app/installations/{id}`` under the App's own JWT.
+
+    Every other falsifier in this module probes with the collector's installation-scoped
+    credential and gates a 404 against that credential's REACH (github-core#157) — a repository
+    the installation was never granted answers 404 for a reason that has nothing to do with the
+    object's existence. This falsifier's question is different in kind: the App is asking about
+    its OWN installation, and its JWT can name any installation of itself regardless of what that
+    installation was ever granted.
+
+    That "its own" is load-bearing, and a 404 is NOT unconditionally unambiguous: the account's
+    installation listing (``_collect_app_installations``) mints an ``app_installation`` under
+    whichever App actually
+    registered it, which may be a DIFFERENT App than the one this plugin's own credential
+    authenticates as (Dependabot, or any other third party the account installed). GitHub's
+    endpoint 404s both for an installation this App never had and for one that was genuinely
+    revoked — the same two-readings-under-one-status-line shape ``reach.py`` exists for, just
+    keyed on App identity instead of repository membership. So ``judge`` compares the
+    candidate's parent (``github_app.app_id``) against the credential's own App id
+    (``GithubAuth.app_id``) BEFORE trusting a ``not_found``: a mismatch, or either side unknown,
+    answers ``UNDETERMINED(scope_unknown)`` rather than a retirement. A ``found`` (200) needs no
+    such gate — GitHub cannot hand this JWT another App's installation, so a 200 is unconditional
+    proof either way.
+
+    The credential itself is the one thing that CAN be absent: a PAT-only envelope cannot mint a
+    JWT at all (``GithubAuth.has_app`` is ``False``), which ``_default_app_session`` raises on and
+    this falsifier turns into ``UNDETERMINED(scope_unknown)`` for every candidate, never a crash
+    and never a silent "found nothing".
+    """
+
+    def __init__(
+        self,
+        client: ProbeClient | None = None,
+        client_factory: Callable[[], ProbeClient] | None = None,
+        session_factory: Callable[[], tuple[ProbeClient, Any]] | None = None,
+        credential_app_id: int | str | None = None,
+    ) -> None:
+        super().__init__(
+            client=client,
+            client_factory=client_factory,
+            session_factory=session_factory or _default_app_session,
+        )
+        #: A caller-pinned App id (tests). ``None`` means "read it off ``self._auth``", which is
+        #: itself ``None`` for an injected client with no session behind it — the same "an
+        #: injected client proves nothing about the credential" discipline `_resolve_reach` uses.
+        self._injected_app_id = credential_app_id
+
+    def _credential_app_id(self) -> int | str | None:
+        if self._injected_app_id is not None:
+            return self._injected_app_id
+        return getattr(self._auth, "app_id", None)
+
+    def batch_falsify(self, candidates: Sequence[Candidate], context: FalsifyContext) -> list[Verdict]:
+        # Overridden rather than reusing the base class's flow: that flow resolves a REPOSITORY
+        # reach (`_resolve_reach`) which this falsifier's JWT-authenticated client cannot answer
+        # (`/installation/repositories` requires an installation token) and does not need — the
+        # App-identity gate above is this falsifier's own, different, gate.
+        self._begin_run(context.batch_id)
+        try:
+            client = self._resolve_client()
+        except GithubAppAuthError as exc:
+            note = f"no App credential: {exc}"
+            logger.info("[a9f1] AppInstallationFalsifier: %s", note)
+            return [_undetermined(c, "scope_unknown", note) for c in list(candidates)]
+        except Exception as exc:  # noqa: BLE001 — a missing credential is an answer, not a crash
+            note = f"credential unavailable: {type(exc).__name__}"
+            logger.warning("[a9f2] AppInstallationFalsifier: %s: %s", note, exc)
+            return [_undetermined(c, "errored", note) for c in list(candidates)]
+        return self.judge_all(client, list(candidates))
+
+    def judge(self, client: ProbeClient, candidate: Candidate) -> Verdict:
+        row = _row_of(candidate.entity_id)
+        if row is None:
+            return _undetermined(candidate, "errored", "the grid row could not be read")
+        installation_id = getattr(row, "installation_id", None)
+        if installation_id is None:
+            return _undetermined(
+                candidate, "scope_unknown", "the grid holds no stable id (installation_id) for this installation"
+            )
+        app_slug = str(getattr(row, "app_slug", "") or "") or None
+        parent = _row_of(candidate.parent)
+        owner = str(getattr(parent, "slug", "") or "") or None if parent is not None else None
+        expected = Expected(source_id=str(installation_id), owner=owner, name=app_slug)
+        result = self._probe_get(client, f"/app/installations/{installation_id}")
+        if isinstance(result, Probe):
+            if result.status == "not_found":
+                parent_app_id = getattr(parent, "app_id", None) if parent is not None else None
+                credential_app_id = self._credential_app_id()
+                if parent_app_id is None or credential_app_id is None:
+                    return _undetermined(
+                        candidate,
+                        "scope_unknown",
+                        "this credential's own App id could not be compared against the "
+                        "installation's App (github_app.app_id or GithubAuth.app_id unread), so a "
+                        "404 from an App-scoped endpoint cannot be trusted as absence",
+                    )
+                if str(parent_app_id) != str(credential_app_id):
+                    return _undetermined(
+                        candidate,
+                        "scope_unknown",
+                        f"this credential is App {credential_app_id}, not the installation's own App "
+                        f"{parent_app_id}: GET /app/installations/{{id}} 404s for an installation "
+                        "belonging to a different App exactly as it does for one that was revoked "
+                        "(github-core#197), so this 404 says nothing about whether the installation "
+                        "still exists",
+                    )
+            # Either `found`, or a `not_found` whose App identity was confirmed above: no reach
+            # gate and no parent probe beyond that — the App JWT already answers "does this
+            # exist" directly, once it is asking about the right App.
+            return verdict_from_probe(candidate, expected, result)
+        found_slug = str(result.get("app_slug") or "") or None
+        probe = Probe(
+            status="found",
+            source_id=str(result.get("id")) if result.get("id") is not None else None,
+            owner=found_slug if owner is not None else None,
+            name=found_slug,
+            created_at=_created_at(result),
+            detail="HTTP 200",
+        )
+        return verdict_from_probe(candidate, expected, probe)
+
+
 #: The probe recorded when a file read yields neither a record nor a failure — unreachable by
 #: construction (``_workflow_file_at_head`` always returns one of the two), kept so the fail-closed
 #: branch needs no assertion that a production build would strip.
@@ -722,6 +1012,8 @@ class WorkflowJobFalsifier(_GithubFalsifier):
 
 
 __all__ = [
+    "ActionsSecretFalsifier",
+    "AppInstallationFalsifier",
     "EnvironmentFalsifier",
     "RepositoryFalsifier",
     "WorkflowFalsifier",

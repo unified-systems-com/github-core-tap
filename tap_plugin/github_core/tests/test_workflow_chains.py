@@ -1,7 +1,7 @@
 """Workflow chains: reusable-workflow calls and `workflow_run` triggers (req-github-core-workflow-chains).
 
 Spec: plugins/github_core/specs/spec-github-core-v0.md (req-github-core-workflow-chains)
-Issues: unified-systems-com/tap-plugin-github-core#29 (CALLS_WORKFLOW), #52 (TRIGGERS_WORKFLOW)
+Issues: unified-systems-com/github-core-tap#29 (CALLS_WORKFLOW), #52 (TRIGGERS_WORKFLOW)
 
 The tests that matter are about what happens when the other end is NOT there: a callee in a
 repository outside the scope must leave a recorded state on the caller and no invented node.

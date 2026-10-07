@@ -59,8 +59,8 @@ Observed 2026-09-02 by executed call on `unified-systems-com/tap`: `total_count:
 ## Prior Art
 
 - `specs/spec-github-core-vocabulary.md` (2026-08-27) — `actions_artifact`, friends tier, 11 sources; `UPLOADS_ARTIFACT` / `DOWNLOADS_ARTIFACT` `{cross_workflow}`. Pulled forward to self by the machinery view's outputs column.
-- unified-systems-com/tap-plugin-github-core#55 (2026-09-02) — the bake issue: the repository listing, the executed-call shape, the `DOWNLOADS_ARTIFACT` finding, Shape C.
-- unified-systems-com/tap-plugin-github-core#31 (2026-09-02) — outputs not observable in the machinery view.
+- unified-systems-com/github-core-tap#55 (2026-09-02) — the bake issue: the repository listing, the executed-call shape, the `DOWNLOADS_ARTIFACT` finding, Shape C.
+- unified-systems-com/github-core-tap#31 (2026-09-02) — outputs not observable in the machinery view.
 - [`actions_cache`](actions_cache.md) — the sibling "observed entry versus declared step" split this node copies, including the refusal to join a declaration to an instance by pattern.
 
 ## Fields
