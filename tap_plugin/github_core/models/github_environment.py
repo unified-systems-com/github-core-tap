@@ -26,8 +26,11 @@ class GithubEnvironment(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__github_environment"
-    # Repository + environment name.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "name")
+    # GitHub's environment id alone (github-core#209): confirmed platform-global against this
+    # estate's real data (no two distinct repositories ever share one), 100% populated, so no
+    # "documented but unreliable" gap the way the issue worried about. `full_name` and `name`
+    # stay plain, refreshed-on-observation attributes below.
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("environment_id",)
     ENTITY_NAME: ClassVar[str] = "GitHub Environment"
     ENTITY_DESCRIPTION: ClassVar[str] = (
         "A named deployment environment and the protection rules standing in front of it."

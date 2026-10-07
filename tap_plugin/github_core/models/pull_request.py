@@ -26,9 +26,11 @@ class PullRequest(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__pull_request"
-    # The BASE repository plus the PR number — GitHub's own identity within a repository.
-    # `github_id` is carried as a field for continuity across a transfer, not as the key.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "number")
+    # GitHub's own platform-global id (github-core#209) — unique across all of GitHub, not just
+    # one repository, so no repository scope is even needed. `full_name`+`number` is what every
+    # URL and comment names a PR by, and renaming its base repository must not mint a duplicate;
+    # both stay plain, refreshed-on-observation attributes below.
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("github_id",)
     ENTITY_NAME: ClassVar[str] = "Pull Request"
     ENTITY_DESCRIPTION: ClassVar[str] = (
         "A proposal to merge one ref into another: its state, author, head and base, review decision, "

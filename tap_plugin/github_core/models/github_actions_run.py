@@ -24,8 +24,9 @@ class GithubActionsRun(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__github_actions_run"
-    # Repository + GitHub's run id. `run_attempt` is deferred — req-github-core-backlog-run-attempts.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "run_id")
+    # GitHub's run id alone: platform-global (github-core#209), never `full_name`. `run_attempt`
+    # is deferred — req-github-core-backlog-run-attempts.
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("run_id",)
     ENTITY_NAME: ClassVar[str] = "GitHub Actions Run"
     ENTITY_DESCRIPTION: ClassVar[str] = "An execution of a GitHub Actions workflow."
     ENTITY_ICON: ClassVar[str] = "github-actions-run"

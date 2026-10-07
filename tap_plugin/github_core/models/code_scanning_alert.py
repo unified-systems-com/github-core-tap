@@ -32,8 +32,10 @@ class CodeScanningAlert(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__code_scanning_alert"
-    # Repository + GitHub's alert number: stable across re-analysis, and numbers restart per repo.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "number")
+    # The repository's immutable id (github-core#209, never `full_name`) + GitHub's alert
+    # number: stable across re-analysis, but restarts per repo — unlike run/job/artifact ids,
+    # GitHub's code scanning API names an alert only by repo+number, never a platform-global id.
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("repository_github_id", "number")
     ENTITY_NAME: ClassVar[str] = "Code Scanning Alert"
     ENTITY_DESCRIPTION: ClassVar[str] = (
         "A code scanning rule that fired on a repository: the rule and its severities, the location and "
@@ -75,6 +77,7 @@ class CodeScanningAlert(BaseModel):
 
     FIELD_CRUD_SCHEMA: ClassVar[dict[str, Any]] = {
         "full_name": {"type": "string", "minLength": 1},
+        "repository_github_id": {"type": ["integer", "null"]},
         "number": {"type": "integer"},
         "state": {"type": "string"},
         "created_at": {"type": ["string", "null"]},
@@ -109,6 +112,7 @@ class CodeScanningAlert(BaseModel):
 
     FIELD_VALIDATION_SCHEMA: ClassVar[dict[str, Any]] = {
         "full_name": {"validation": "jsonschema", "schema": {"type": "string", "minLength": 1}},
+        "repository_github_id": {"validation": "jsonschema", "schema": {"type": ["integer", "null"]}},
         "number": {"validation": "jsonschema", "schema": {"type": "integer", "minimum": 1}},
         "state": {"validation": "jsonschema", "schema": {"type": "string", "enum": STATES}},
         # null is "we did not observe a timestamp", never "now".
@@ -147,8 +151,11 @@ class CodeScanningAlert(BaseModel):
     }
     CREATE_REQUIRED: ClassVar[list[str]] = ["full_name", "number"]
 
-    #: `owner/repo` the alert was raised in; half the natural key.
+    #: `owner/repo` the alert was raised in — a plain, refreshed-on-observation attribute; see
+    #: `repository_github_id` below for the identity half (github-core#209).
     full_name = models.CharField(max_length=255, blank=True, default="", db_index=True)
+    #: The repository's immutable GitHub id; half the natural key (github-core#209).
+    repository_github_id = models.BigIntegerField(null=True, blank=True, db_index=True)
     #: The alert number within that repository; the other half.
     number = models.IntegerField(null=True, blank=True, db_index=True)
     state = models.CharField(max_length=16, blank=True, default="", db_index=True)

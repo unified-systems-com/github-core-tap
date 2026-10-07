@@ -34,8 +34,10 @@ class GithubRepository(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__github_repository"
-    # `owner/repo` — the spec's natural key and what every GitHub surface names a repository by.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name",)
+    # GitHub's own immutable numeric id (github-core#209). `full_name` renames; every listing
+    # and single-repo fetch returns `id`/`databaseId` in the same response, so this is never a
+    # second round-trip. `full_name` stays a plain, refreshed-on-observation attribute below.
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("github_id",)
     ENTITY_NAME: ClassVar[str] = "GitHub Repository"
     ENTITY_DESCRIPTION: ClassVar[str] = "A repository hosted on GitHub."
     ENTITY_ICON: ClassVar[str] = "github-repository"

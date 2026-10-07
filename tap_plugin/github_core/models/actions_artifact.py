@@ -33,8 +33,10 @@ class ActionsArtifact(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__actions_artifact"
-    # Repository + GitHub's artifact id (platform-global; the repository prefix is belt-and-braces).
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "artifact_id")
+    # GitHub's artifact id alone: platform-global. The `full_name` prefix used to be kept as
+    # belt-and-braces on top of an already-safe id — the safety margin is what broke, because
+    # it was the one mutable ingredient in an otherwise-safe key (github-core#209).
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("artifact_id",)
     ENTITY_NAME: ClassVar[str] = "Actions Artifact"
     ENTITY_DESCRIPTION: ClassVar[str] = (
         "A file set a workflow run uploaded — its name, size, content digest and retention state. "

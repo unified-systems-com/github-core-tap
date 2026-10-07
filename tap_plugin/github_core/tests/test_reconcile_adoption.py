@@ -155,6 +155,10 @@ class TestAFailedRepositoryDoesNotLeaveAnAdmittedSurface:
         )
         fake.refuse(f"/repos/{broken}/actions/runs", 502)  # after the workflows listing, before the runs
         second = {**config_repo(), "nameWithOwner": broken, "name": "broken", "databaseId": 11}
+        # Distinct environment id (github-core#209: identity is now the id alone, not
+        # full_name+name) — `config_repo()`'s nested environment fixture is shared by reference,
+        # so without this override both fake repos would declare the same environment object.
+        second["environments"] = {"nodes": [{"databaseId": 11, "name": "production", "protectionRules": {"nodes": []}}]}
         monkeypatch.setattr(collector_module, "resolve_github_secret", lambda *a, **k: Secret())
         monkeypatch.setattr(collector_module, "GithubClient", lambda **kw: fake)
         monkeypatch.setattr(
