@@ -1069,3 +1069,79 @@ class TestCreateAppSkillIsHostRunnable:
         keys = built["default_permissions"]
         assert "administration" in keys and "organization_administration" in keys
         assert keys["administration"] == "read" and keys["organization_administration"] == "read"
+
+
+class TestReadinessSummaryNamesTheScopeItWalked:
+    """The readiness line reports the scope the run actually walked, not the filter list."""
+
+    @staticmethod
+    def _summary(**kwargs: Any) -> str:
+        from tap_plugin.github_core.collectors.github_collector.collector import (
+            _readiness_summary,
+        )
+
+        base: dict[str, Any] = {
+            "repo_access_ok": True,
+            "owner_walk_failed": False,
+            "explicit_repos": 0,
+            "owner": "unified-systems-com",
+            "enumerated": None,
+            "enumeration_complete": True,
+        }
+        return _readiness_summary(**(base | kwargs))
+
+    def test_an_owner_walk_reports_what_it_enumerated(self) -> None:
+        """The regression: an owner-scoped credential reported 0 while seeing a whole org.
+
+        The count came from the EXPLICIT repo filter, which an owner-scoped credential leaves
+        empty, so the line read as a dead credential while the enumeration check beside it had
+        just listed every repository.
+        """
+        summary = self._summary(enumerated=34)
+        assert "34 repo(s) enumerated under unified-systems-com" in summary
+        assert "0 repo(s)" not in summary
+
+    def test_an_explicit_filter_is_reported_as_such(self) -> None:
+        assert "3 explicitly configured repo(s)" in self._summary(explicit_repos=3, enumerated=34)
+
+    def test_a_truncated_walk_says_so(self) -> None:
+        summary = self._summary(enumerated=500, enumeration_complete=False)
+        assert "500 repo(s) enumerated" in summary and "INCOMPLETE" in summary
+
+    def test_an_empty_scope_is_words_not_a_zero(self) -> None:
+        """No owner and no repos is a misconfiguration, and must not render as a count."""
+        summary = self._summary(owner=None, enumerated=None)
+        assert "nothing is in scope" in summary
+        assert "0 repo(s)" not in summary
+
+    def test_an_empty_org_is_distinct_from_an_empty_scope(self) -> None:
+        """A walk that ran and found nothing is a real observation, unlike no walk at all."""
+        summary = self._summary(owner="brand-new-org", enumerated=0)
+        assert "0 repo(s) enumerated under brand-new-org" in summary
+
+    def test_an_unreachable_repo_still_wins_over_any_count(self) -> None:
+        summary = self._summary(repo_access_ok=False, explicit_repos=2, enumerated=34)
+        assert "cannot access one or more configured repos" in summary
+        assert "34" not in summary
+
+    def test_a_failed_owner_walk_is_not_reported_as_an_empty_scope(self) -> None:
+        """A raising owner walk leaves `enumerated` None, which must not read as "no owner set".
+
+        Two different situations both leave the count unset: no owner was ever configured, and an
+        owner walk that raised. Only the first is an empty scope. The ordering that keeps them
+        apart is that a failed walk also clears repo_access_ok, so the failure arm answers first —
+        which is easy to break by reordering the branches, hence this test.
+        """
+        summary = self._summary(
+            repo_access_ok=False, owner_walk_failed=True, owner="unified-systems-com", enumerated=None
+        )
+        assert "nothing is in scope" not in summary
+        assert "no owner" not in summary
+
+    def test_a_failed_owner_walk_does_not_blame_configured_repos(self) -> None:
+        """An account-scope failure names the owner, not repos the credential never had."""
+        summary = self._summary(
+            repo_access_ok=False, owner_walk_failed=True, owner="unified-systems-com", enumerated=None
+        )
+        assert "cannot enumerate repositories under unified-systems-com" in summary
+        assert "configured repos" not in summary

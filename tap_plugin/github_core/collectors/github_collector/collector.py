@@ -778,6 +778,14 @@ class GithubCollector(CollectorBase):
         # org of hundreds of repos self-tests in seconds. Explicit repos (filter or legacy
         # scope) are still probed one by one below.
         repo_access_ok = True
+        # What the owner walk actually proved reachable. None means no walk ran (no owner is
+        # configured), which is NOT the same as a walk that found nothing — the summary has to
+        # tell those two apart, because one is a misconfiguration and the other is an empty org.
+        enumerated: int | None = None
+        enumeration_complete = True
+        # Distinct from repo_access_ok: an owner walk that FAILED is not the same failure as a
+        # configured repo being unreachable, and the summary must not report one as the other.
+        owner_walk_failed = False
         if owner is not None:
             try:
                 try:
@@ -794,6 +802,7 @@ class GithubCollector(CollectorBase):
                     )
             except GithubAPIError as exc:
                 repo_access_ok = False
+                owner_walk_failed = True
                 checks.append(
                     check_fail(
                         f"GITHUB_OWNER_ACCESS:{owner}",
@@ -804,6 +813,8 @@ class GithubCollector(CollectorBase):
                     )
                 )
             else:
+                enumerated = len(listing)
+                enumeration_complete = client.last_walk_complete
                 checks.append(
                     check_pass(
                         f"GITHUB_OWNER_ACCESS:{owner}",
@@ -846,10 +857,13 @@ class GithubCollector(CollectorBase):
 
         return CollectorSelfTestResult.from_checks(
             checks,
-            summary=(
-                f"GitHub Core collector is ready; {len(repos)} repo(s) accessible."
-                if repo_access_ok
-                else "GitHub Core collector credential cannot access one or more configured repos."
+            summary=_readiness_summary(
+                repo_access_ok=repo_access_ok,
+                owner_walk_failed=owner_walk_failed,
+                explicit_repos=len(repos),
+                owner=owner,
+                enumerated=enumerated,
+                enumeration_complete=enumeration_complete,
             ),
             docs=_DOCS,
         )
@@ -7078,3 +7092,46 @@ class GithubCollector(CollectorBase):
                 f"{nm.target_value!r}. Not linking — investigate whether the rule should "
                 f"be extended or the target is misconfigured.",
             )
+
+
+def _readiness_summary(
+    *,
+    repo_access_ok: bool,
+    owner_walk_failed: bool = False,
+    explicit_repos: int,
+    owner: str | None,
+    enumerated: int | None,
+    enumeration_complete: bool,
+) -> str:
+    """The one-line readiness summary, stating what this run actually proved.
+
+    The count used to come from ``len(repos)`` — the length of the EXPLICIT repo filter, which is
+    empty for an ordinary owner-scoped credential. So a credential that had just enumerated an
+    entire organisation reported "0 repo(s) accessible": a number that reads as a dead credential
+    while the run beside it proved the opposite. The count now comes from whichever scope the run
+    actually walked, and a genuinely empty scope says so in words rather than rendering as a zero.
+    """
+    if owner_walk_failed:
+        # Named separately because the generic repo message below would blame "configured repos"
+        # for an account-scope failure, and an owner-scoped credential has none configured.
+        return (
+            f"GitHub Core collector cannot enumerate repositories under {owner}; the credential's "
+            "account scope is unreadable."
+        )
+    if not repo_access_ok:
+        return "GitHub Core collector credential cannot access one or more configured repos."
+    if explicit_repos:
+        return (
+            f"GitHub Core collector is ready; {explicit_repos} explicitly configured repo(s) "
+            "accessible."
+        )
+    if enumerated is not None:
+        incomplete = "" if enumeration_complete else " (walk INCOMPLETE — page cap hit)"
+        return (
+            f"GitHub Core collector is ready; {enumerated} repo(s) enumerated under "
+            f"{owner}{incomplete}."
+        )
+    return (
+        "GitHub Core collector reached GitHub, but nothing is in scope: no owner and no explicit "
+        "repos are configured, so a collection would observe nothing."
+    )
