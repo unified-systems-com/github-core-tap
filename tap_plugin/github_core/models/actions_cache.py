@@ -27,8 +27,8 @@ class ActionsCache(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__actions_cache"
-    # Repository + GitHub's cache id.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "cache_id")
+    # GitHub's cache id alone: platform-global, never `full_name` (github-core#209).
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("cache_id",)
     ENTITY_NAME: ClassVar[str] = "Actions Cache"
     ENTITY_DESCRIPTION: ClassVar[str] = (
         "A stored Actions cache entry — its key, the ref whose run created it, and when it was "

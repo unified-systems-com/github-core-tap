@@ -25,8 +25,9 @@ class CodeScanningAnalysis(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__code_scanning_analysis"
-    # Repository + GitHub's analysis id (one SARIF upload).
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "analysis_id")
+    # GitHub's analysis id alone (one SARIF upload): platform-global, never `full_name`
+    # (github-core#209).
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("analysis_id",)
     ENTITY_NAME: ClassVar[str] = "Code Scanning Analysis"
     ENTITY_DESCRIPTION: ClassVar[str] = (
         "One code scanning upload: the tool and version, the commit and ref it analysed, "

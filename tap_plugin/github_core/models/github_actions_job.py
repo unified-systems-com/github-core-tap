@@ -22,8 +22,8 @@ class GithubActionsJob(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__github_actions_job"
-    # Repository + GitHub's job id.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "job_id")
+    # GitHub's job id alone: platform-global (github-core#209), never `full_name`.
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("job_id",)
     ENTITY_NAME: ClassVar[str] = "GitHub Actions Job"
     ENTITY_DESCRIPTION: ClassVar[str] = "One job within a GitHub Actions workflow run."
     ENTITY_ICON: ClassVar[str] = "github-actions-job"

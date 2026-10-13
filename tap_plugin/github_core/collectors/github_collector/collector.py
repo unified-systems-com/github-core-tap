@@ -4672,7 +4672,9 @@ class GithubCollector(CollectorBase):
             number = alert.get("number")
             if number is None:
                 continue
-            detail = self._code_scanning_alert_fields(full_name, alert)
+            detail = self._code_scanning_alert_fields(
+                full_name, repo_envelope["node"]["github_id"], alert
+            )
             alert_uuid = code_scanning_alert_id(full_name, number)
             finding_uuid = code_scanning_finding_id(full_name, number)
             nodes.append(
@@ -4842,12 +4844,16 @@ class GithubCollector(CollectorBase):
         return _OBSERVED, [item for item in items if isinstance(item, dict)], complete, ""
 
     @staticmethod
-    def _code_scanning_alert_fields(full_name: str, alert: dict[str, Any]) -> dict[str, Any]:
+    def _code_scanning_alert_fields(
+        full_name: str, repository_github_id: Any, alert: dict[str, Any]
+    ) -> dict[str, Any]:
         """The detail node's fields, flattened from GitHub's nested alert.
 
         Timestamps pass through as GitHub gave them (a string, or null = GitHub gave null);
         nested optional strings become `""` when null; the raw alert rides `configuration` so
-        nothing the API said is lost to the flattening.
+        nothing the API said is lost to the flattening. `repository_github_id` is the identity
+        half of the natural key (github-core#209); `full_name` stays a plain, refreshed-on-
+        observation attribute.
         """
         rule = alert.get("rule") or {}
         tool = alert.get("tool") or {}
@@ -4856,6 +4862,7 @@ class GithubCollector(CollectorBase):
         dismissed_by = alert.get("dismissed_by") or {}
         return {
             "full_name": full_name,
+            "repository_github_id": repository_github_id,
             "number": alert.get("number"),
             "state": str(alert.get("state") or ""),
             "created_at": alert.get("created_at"),
