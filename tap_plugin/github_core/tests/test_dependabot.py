@@ -427,10 +427,14 @@ class TestWalkAndTruncation:
         assert "page" not in params and max_pages == 100
 
     @pytest.mark.spec("req-github-core-dependabot-alerts-6")
-    def test_an_incomplete_walk_is_warned_and_completeness_is_not_claimed(self) -> None:
-        _, _, _, warns, infos = _collect(_FakeClient(incomplete=True))
+    def test_an_incomplete_walk_is_warned_and_the_repository_is_not_observed(self) -> None:
+        """A capped walk landed some alerts but cannot say there are no others: the alerts it read
+        still land, the repository is `unobservable`, and nothing is presented as the whole."""
+        node, nodes, _, warns, infos = _collect(_FakeClient(incomplete=True))
         assert _codes(warns) == ["DEPENDABOT_TRUNCATED"]
-        assert infos[0][1]["message_data"]["complete"] is False
+        assert node["dependabot_observability"] == "unobservable"
+        assert len(_of_type(nodes, _ALERT_TYPE)) == len(_ALL_ALERTS)
+        assert not infos or infos[0][1]["message_data"]["complete"] is False
 
     @pytest.mark.spec("req-github-core-dependabot-alerts-8")
     def test_a_complete_walk_summarises_by_state_and_records_the_ecosystems_seen(self) -> None:

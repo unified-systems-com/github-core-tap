@@ -5018,7 +5018,12 @@ class GithubCollector(CollectorBase):
         no GitHub Actions value and none has been observed (req-github-core-dependabot-alerts-5).
         """
         state, alerts, complete, note = self._dependabot_fetch(client, full_name)
-        repo_envelope["node"]["dependabot_observability"] = state
+        # A walk that did not reach the end of the Link chain landed some alerts but cannot say
+        # there are no others: the repository is `unobservable` for the purpose of absence (the
+        # alerts that WERE read still land, and DEPENDABOT_TRUNCATED says why). `observed` is only
+        # ever a complete walk, so "observed + zero rows" and "observed + no such alert" stay facts.
+        partial = state == _OBSERVED and not complete
+        repo_envelope["node"]["dependabot_observability"] = _UNOBSERVABLE if partial else state
         if state == _UNOBSERVABLE:
             self.record_warn(
                 _SITE_DEPENDABOT_UNOBSERVABLE,
@@ -5096,13 +5101,13 @@ class GithubCollector(CollectorBase):
             by_state[detail["state"]] = by_state.get(detail["state"], 0) + 1
             by_ecosystem[detail["ecosystem"]] = by_ecosystem.get(detail["ecosystem"], 0) + 1
 
-        if state == _OBSERVED and not complete:
+        if partial:
             self.record_warn(
                 _SITE_DEPENDABOT_TRUNCATED,
                 "DEPENDABOT_TRUNCATED",
                 f"{full_name}: the Dependabot walk stopped at the page cap with {len(alerts)} collected and "
-                f"more pending. The alert set is INCOMPLETE; absence of an alert in this batch is not "
-                f"evidence it is fixed or dismissed.",
+                f"more pending. The alert set is INCOMPLETE, so the repository is recorded as unobservable: "
+                f"absence of an alert in this batch is not evidence it is fixed or dismissed.",
                 message_data={"repo": full_name, "collected": len(alerts)},
             )
         if state == _OBSERVED:
