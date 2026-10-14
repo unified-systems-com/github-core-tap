@@ -433,6 +433,15 @@ class TestWalkAndTruncation:
         node, nodes, _, warns, _ = _collect(_FakeClient(alerts=[broken, *_ALL_ALERTS]))
         assert node["dependabot_observability"] == "unobservable"
         assert _codes(warns) == ["DEPENDABOT_UNREADABLE"]
+        assert warns[0][1]["message_data"]["unreadable"] == 1
+        assert len(_of_type(nodes, _ALERT_TYPE)) == len(_ALL_ALERTS)
+
+    @pytest.mark.spec("req-github-core-dependabot-alerts-2")
+    def test_an_entry_that_is_not_an_object_is_counted_not_discarded(self) -> None:
+        # SYNTHETIC: a list entry that is not an alert object at all.
+        node, nodes, _, warns, _ = _collect(_FakeClient(alerts=["not an alert", None, *_ALL_ALERTS]))  # type: ignore[list-item]
+        assert node["dependabot_observability"] == "unobservable"
+        assert warns[0][1]["message_data"]["unreadable"] == 2
         assert len(_of_type(nodes, _ALERT_TYPE)) == len(_ALL_ALERTS)
 
     @pytest.mark.spec("req-github-core-dependabot-alerts-6")

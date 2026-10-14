@@ -5027,7 +5027,7 @@ class GithubCollector(CollectorBase):
         # An item with no alert number cannot be keyed, so it cannot land: count it, and treat it
         # like a cut-off walk — the repository is not `observed` when something the API returned
         # was dropped on the floor.
-        unreadable = sum(1 for alert in alerts if alert.get("number") is None)
+        unreadable = sum(1 for alert in alerts if not isinstance(alert, dict) or alert.get("number") is None)
         repo_envelope["node"]["dependabot_observability"] = (
             _UNOBSERVABLE if (partial or unreadable) else state
         )
@@ -5054,9 +5054,9 @@ class GithubCollector(CollectorBase):
         workflow_linked = 0
         action_linked = 0
         for alert in alerts:
-            number = alert.get("number")
-            if number is None:
-                continue
+            if not isinstance(alert, dict) or alert.get("number") is None:
+                continue  # counted in `unreadable` above
+            number = alert["number"]
             detail = self._dependabot_alert_fields(full_name, alert)
             alert_uuid = dependabot_alert_id(full_name, number)
             finding_uuid = dependabot_finding_id(full_name, number)
@@ -5181,7 +5181,8 @@ class GithubCollector(CollectorBase):
             return refused_as, [], True, f"alerts answered {exc.status}: {(exc.body or '')[:120]}"
         # A client that cannot say whether the walk finished has NOT proven completeness.
         complete = bool(getattr(client, "last_walk_complete", False))
-        return _OBSERVED, [item for item in items if isinstance(item, dict)], complete, ""
+        # Everything the walk returned, unfiltered: the caller counts what it cannot key.
+        return _OBSERVED, list(items), complete, ""
 
     @staticmethod
     def _dependabot_alert_fields(full_name: str, alert: dict[str, Any]) -> dict[str, Any]:
