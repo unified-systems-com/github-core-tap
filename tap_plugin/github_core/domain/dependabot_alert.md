@@ -47,7 +47,7 @@ Populated from **`GET /repos/{owner}/{repo}/dependabot/alerts`** with `state=ope
 - `not_enabled` — GitHub answered 403 `Dependabot alerts are disabled for this repository`. A fact about the repository's configuration, not about the credential (`DEPENDABOT_NOT_ENABLED`).
 - `""` — never asked.
 
-A walk that stopped early at the page cap lands the alerts it read, records `DEPENDABOT_TRUNCATED` with the count, and leaves the repository `unobservable`: `observed` is only ever a complete walk.
+A walk that stopped early at the page cap lands the alerts it read, records `DEPENDABOT_TRUNCATED` with the count, and leaves the repository `unobservable`: `observed` is only ever a complete walk. The same holds for an item that came back with no alert number and could not be keyed: it is counted in `DEPENDABOT_UNREADABLE` and the repository is `unobservable`, never `observed` over a dropped alert.
 
 **Absence shape** (github-core#14): **Shape E, credential-shaped**, with the added `not_enabled` state, for the reason the code-scanning alert gives. Reconciliation shape C: an immutable event — GitHub answers a fixed alert forever and only `state` and the `*_at` fields change.
 

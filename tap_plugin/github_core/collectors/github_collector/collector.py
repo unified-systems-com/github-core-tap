@@ -252,6 +252,7 @@ _SITE_DEPENDABOT_UNOBSERVABLE = "d9a4"
 _SITE_DEPENDABOT_NOT_ENABLED = "1b7e"
 _SITE_DEPENDABOT_TRUNCATED = "6f02"
 _SITE_DEPENDABOT_COLLECTED = "e35c"
+_SITE_DEPENDABOT_UNREADABLE = "a84d"
 # settings surfaces (req-github-core-settings)
 _SITE_ORG_SETTINGS_PUBLIC_ONLY = "89ed"
 _SITE_ORG_SETTINGS_UNOBSERVABLE = "3abc"
@@ -5023,7 +5024,13 @@ class GithubCollector(CollectorBase):
         # alerts that WERE read still land, and DEPENDABOT_TRUNCATED says why). `observed` is only
         # ever a complete walk, so "observed + zero rows" and "observed + no such alert" stay facts.
         partial = state == _OBSERVED and not complete
-        repo_envelope["node"]["dependabot_observability"] = _UNOBSERVABLE if partial else state
+        # An item with no alert number cannot be keyed, so it cannot land: count it, and treat it
+        # like a cut-off walk — the repository is not `observed` when something the API returned
+        # was dropped on the floor.
+        unreadable = sum(1 for alert in alerts if alert.get("number") is None)
+        repo_envelope["node"]["dependabot_observability"] = (
+            _UNOBSERVABLE if (partial or unreadable) else state
+        )
         if state == _UNOBSERVABLE:
             self.record_warn(
                 _SITE_DEPENDABOT_UNOBSERVABLE,
@@ -5101,6 +5108,15 @@ class GithubCollector(CollectorBase):
             by_state[detail["state"]] = by_state.get(detail["state"], 0) + 1
             by_ecosystem[detail["ecosystem"]] = by_ecosystem.get(detail["ecosystem"], 0) + 1
 
+        if unreadable:
+            self.record_warn(
+                _SITE_DEPENDABOT_UNREADABLE,
+                "DEPENDABOT_UNREADABLE",
+                f"{full_name}: {unreadable} Dependabot alert(s) came back with no number and could not be "
+                f"keyed, so they were not landed. The alert set is INCOMPLETE, so the repository is recorded "
+                f"as unobservable.",
+                message_data={"repo": full_name, "unreadable": unreadable},
+            )
         if partial:
             self.record_warn(
                 _SITE_DEPENDABOT_TRUNCATED,

@@ -426,6 +426,15 @@ class TestWalkAndTruncation:
         # The endpoint rejects `page` (400): cursor pagination only, so we never send one.
         assert "page" not in params and max_pages == 100
 
+    @pytest.mark.spec("req-github-core-dependabot-alerts-2")
+    def test_an_alert_with_no_number_is_warned_and_the_repository_is_not_observed(self) -> None:
+        # SYNTHETIC: a malformed item, which GitHub's schema should never produce.
+        broken = {k: v for k, v in _ALERTS["open"][0].items() if k != "number"}
+        node, nodes, _, warns, _ = _collect(_FakeClient(alerts=[broken, *_ALL_ALERTS]))
+        assert node["dependabot_observability"] == "unobservable"
+        assert _codes(warns) == ["DEPENDABOT_UNREADABLE"]
+        assert len(_of_type(nodes, _ALERT_TYPE)) == len(_ALL_ALERTS)
+
     @pytest.mark.spec("req-github-core-dependabot-alerts-6")
     def test_an_incomplete_walk_is_warned_and_the_repository_is_not_observed(self) -> None:
         """A capped walk landed some alerts but cannot say there are no others: the alerts it read
