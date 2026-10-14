@@ -108,6 +108,10 @@ class GithubRepository(BaseModel):
             "type": "string",
             "enum": ["", "observed", "unobservable", "not_enabled"],
         },
+        "dependabot_observability": {
+            "type": "string",
+            "enum": ["", "observed", "unobservable", "not_enabled"],
+        },
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }
@@ -160,6 +164,14 @@ class GithubRepository(BaseModel):
             "validation": "jsonschema",
             "schema": {"type": "string", "enum": ["", "observed", "unobservable", "not_enabled"]},
         },
+        # The same four states for the Dependabot alert surface (github-core#68): `observed`
+        # (200 — zero alerts is then a fact), `unobservable` (403/404 without the "disabled"
+        # wording: the credential could not look), `not_enabled` (GitHub itself says Dependabot
+        # alerts are disabled for this repository), `""` (never asked).
+        "dependabot_observability": {
+            "validation": "jsonschema",
+            "schema": {"type": "string", "enum": ["", "observed", "unobservable", "not_enabled"]},
+        },
         "configuration": {"validation": "jsonschema", "schema": {"type": "object"}},
         "tags": {"validation": "jsonschema", "schema": {"type": "object"}},
     }
@@ -199,6 +211,9 @@ class GithubRepository(BaseModel):
     #: Whether this repository's code scanning alerts were read: `observed` | `unobservable` |
     #: `not_enabled` (GitHub says the surface is off here) | `""` never asked (req-github-core-code-scanning).
     code_scanning_observability = models.CharField(max_length=16, blank=True, default="")
+    #: Whether this repository's Dependabot alerts were read: `observed` | `unobservable` |
+    #: `not_enabled` (GitHub says alerts are disabled here) | `""` never asked (req-github-core-dependabot-alerts).
+    dependabot_observability = models.CharField(max_length=16, blank=True, default="")
     configuration = models.JSONField(default=dict, blank=True)
     tags = models.JSONField(default=dict, blank=True)
 

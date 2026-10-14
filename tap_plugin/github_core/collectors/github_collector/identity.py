@@ -197,6 +197,15 @@ def code_scanning_alert_id(full_name: str, number: int | str) -> Ref:
     return _id("github_core__code_scanning_alert", f"{full_name}#{number}")
 
 
+def dependabot_alert_id(full_name: str, number: int | str) -> Ref:
+    """A Dependabot alert, keyed on the repository plus GitHub's alert number.
+
+    The number is how every URL and every dismissal names the alert within its repository, and
+    it is stable across re-scans. Repository-scoped because numbers restart per repository.
+    """
+    return _id("github_core__dependabot_alert", f"{full_name}#{number}")
+
+
 def code_scanning_analysis_id(full_name: str, analysis_id_int: int | str) -> Ref:
     """One analysis (one SARIF upload), keyed on the repository plus GitHub's analysis id.
 
@@ -253,6 +262,27 @@ def code_scanning_finding_id(full_name: str, number: int | str) -> Ref:
     its own plugin's identity module derives.
     """
     return _id("compliance_core__compliance_finding", code_scanning_finding_source_key(full_name, number))
+
+
+def dependabot_finding_source_key(full_name: str, number: int | str) -> str:
+    """What github_core calls one Dependabot finding, verbatim — composed HERE, once.
+
+    Same contract as :func:`code_scanning_finding_source_key`: the collector writes this string
+    into the finding's `source_key` column and :func:`dependabot_finding_id` names the ref with it.
+    The `#dependabot#` segment is what keeps repository `acme/app`'s Dependabot alert 7 and its
+    code-scanning alert 7 two findings.
+    """
+    return f"{full_name}#dependabot#{number}"
+
+
+def dependabot_finding_id(full_name: str, number: int | str) -> Ref:
+    """The generic `compliance_core__compliance_finding` github_core mints for a Dependabot alert.
+
+    A REF on compliance_core's declared key ``("source", "source_key")`` exactly as
+    :func:`code_scanning_finding_id` is; the collector owes the VALUES
+    (:data:`COMPLIANCE_FINDING_SOURCE` and :func:`dependabot_finding_source_key`) on the node.
+    """
+    return _id("compliance_core__compliance_finding", dependabot_finding_source_key(full_name, number))
 
 
 def environment_id(full_name: str, name: str) -> Ref:

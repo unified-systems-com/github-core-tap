@@ -208,6 +208,12 @@
       "level": "read",
       "why": "The organisation activity stream: below Enterprise there is no audit log, and this is the nearest thing to 'what changed since last week'."
     },
+    "organization_external_properties_for_repos": {
+      "state": "deferred",
+      "level": "read",
+      "why": "Management of external custom properties for repositories in an organization — new in GitHub's OpenAPI description (appeared when the extract was refreshed 2026-10-13 for github-core#68); a custom-properties surface whose contents have not been assessed. Classified here only because the refresh made it unclassified.",
+      "until": "assessed"
+    },
     "organization_hooks": {
       "state": "recommended",
       "level": "read",
@@ -350,9 +356,12 @@
       ]
     },
     "vulnerability_alerts": {
-      "state": "recommended",
+      "state": "requested",
       "level": "read",
-      "why": "Dependabot alerts on the repositories the pipeline builds from. github_core's to request (decided 2026-09-02): security incidents are processed here, not held until a supply-chain product exists — the identity of the vulnerable package may later be a supply_chain_core purl, but the alert is a GitHub fact on a GitHub repository."
+      "why": "Dependabot alerts on the repositories the pipeline builds from. github_core's to request (decided 2026-09-02): security incidents are processed here, not held until a supply-chain product exists — the identity of the vulnerable package may later be a supply_chain_core purl, but the alert is a GitHub fact on a GitHub repository. Requested 2026-10-13 (github-core#68): the alert listing per repository, each alert minted as a compliance_core finding. Sensitive read — say so in the App's review table.",
+      "sources": [
+        "dependabot_alerts"
+      ]
     },
     "workflows": {
       "state": "not_applicable",

@@ -165,8 +165,15 @@ sources: the rule in `recommended-1`, exercised for the first time on a Tier B k
 2026-09-09), so nothing was re-accepted here; an adopter's App minted from the manifest gains *Code
 scanning alerts: Read-only* from the declaration alone, and the rendered review table must mark it
 sensitive (`recommended-2`). Measured the same day: 9 open alerts on `unified-systems-com/tap`, 100
-analyses in the most recent page. `vulnerability_alerts` and `secret_scanning_alerts` stay
-`recommended` until their sources land.
+analyses in the most recent page. `secret_scanning_alerts` stays `recommended` until its source lands.
+
+**Second flip of the sensitive-read tier (2026-10-13, github-core#68).** `vulnerability_alerts` moved `recommended` →
+`requested` with the source `dependabot_alerts` (`GET /repos/{owner}/{repo}/dependabot/alerts`,
+`req-github-core-dependabot-alerts`), citing exactly that source. The installed `git-serious-exploratory` App already
+held it (`vulnerability_alerts: read`, read from its installation 2026-10-13: 200 with 48 alerts on
+`unified-systems-com/tap`), so nothing was re-accepted; an adopter's App minted from the manifest gains *Dependabot
+alerts: Read-only* from the declaration alone, and the review table marks it sensitive. The same OpenAPI refresh
+surfaced a new key, `organization_external_properties_for_repos`, classified `deferred` so the ledger stays complete.
 
 **Operator-side observation (2026-09-09, Issue# 88 - github-core).** GitHub's App-settings form offers
 permission controls that neither the OpenAPI `app-permissions` schema nor the ledger names — *Agent

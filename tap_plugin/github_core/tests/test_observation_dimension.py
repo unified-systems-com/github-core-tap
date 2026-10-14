@@ -30,6 +30,9 @@ EXECUTION_MODELS = {"GithubActionsRun", "GithubActionsJob", "ActionsCache", "Rul
                     # Code scanning (github-core#89): an analysis is a scanner RUN and an alert is what
                     # that run reported — outputs of execution, not configuration anyone wrote.
                     "CodeScanningAlert", "CodeScanningAnalysis",
+                    # A Dependabot alert is what GitHub's scanner reported about a manifest — the
+                    # output of a scan, like a code scanning alert (github-core#68).
+                    "DependabotAlert",
                     # A collection scope is a statement about ONE RUN — what its credential could
                     # reach at that moment — perceived-true-at-a-time like a runner execution
                     # (github-core#145). Configuration is the installation it points at.

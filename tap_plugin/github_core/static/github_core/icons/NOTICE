@@ -32,6 +32,10 @@ GitHub renders beside a code scanning alert — and code-scanning-analysis.svg f
 Both carry the same padded viewBox, explicit #1f2328 fill and <title> as the rest of the derived
 set; the 21-unit glyphs are translated by 1.5 to centre them on the 24-unit grid.
 
+dependabot-alert.svg is derived from the Octicons `dependabot` glyph at v19.15.1 — the glyph
+GitHub renders beside Dependabot — with the same viewBox, explicit #1f2328 fill and <title> as the
+rest of the derived set; the glyph is already on the 24-unit grid, so it needs no translate.
+
 collection-scope.svg is TAP-drawn, not derived from Octicons: GitHub has no glyph for "what one
 credential could see on one run", because GitHub does not model it. A viewfinder — four corner
 brackets around an aperture — drawn to sit with the family: same 24-unit grid, same #1f2328 ink,

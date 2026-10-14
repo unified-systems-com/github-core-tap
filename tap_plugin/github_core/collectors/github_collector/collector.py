@@ -66,6 +66,9 @@ from .identity import (
     code_scanning_analysis_id,
     code_scanning_finding_id,
     code_scanning_finding_source_key,
+    dependabot_alert_id,
+    dependabot_finding_id,
+    dependabot_finding_source_key,
     collection_scope_id,
     commit_observation_id,
     custom_property_id,
@@ -245,6 +248,10 @@ _SITE_CODE_SCANNING_NOT_ENABLED = "8cab"
 _SITE_CODE_SCANNING_ALERTS_TRUNCATED = "5a88"
 _SITE_CODE_SCANNING_ANALYSES_TRUNCATED = "5314"
 _SITE_CODE_SCANNING_COLLECTED = "5c6f"
+_SITE_DEPENDABOT_UNOBSERVABLE = "d9a4"
+_SITE_DEPENDABOT_NOT_ENABLED = "1b7e"
+_SITE_DEPENDABOT_TRUNCATED = "6f02"
+_SITE_DEPENDABOT_COLLECTED = "e35c"
 # settings surfaces (req-github-core-settings)
 _SITE_ORG_SETTINGS_PUBLIC_ONLY = "89ed"
 _SITE_ORG_SETTINGS_UNOBSERVABLE = "3abc"
@@ -505,6 +512,17 @@ _CODE_SCANNING_NOT_ENABLED_MARKERS = (
 )
 #: Alert states GitHub publishes; the substrate finding folds `dismissed` and `fixed` to `resolved`.
 _CODE_SCANNING_OPEN = "open"
+#: Page size for the Dependabot listing (GitHub's maximum). The endpoint is cursor-paginated: it
+#: rejects a `page` parameter with a 400, so the walk follows the Link header and nothing else.
+_DEPENDABOT_PAGE_SIZE = 100
+#: All four lifecycle states, asked for by name: a fixed alert is history, and "no open alerts" is
+#: only meaningful beside "N fixed" (req-github-core-dependabot-alerts-1).
+_DEPENDABOT_STATES = "open,fixed,dismissed,auto_dismissed"
+#: GitHub's own sentence for "the feature is off here" (a 403), matched case-insensitively against
+#: the body so a credential refusal ("Resource not accessible by integration") cannot be misread
+#: as the softer state.
+_DEPENDABOT_NOT_ENABLED_MARKERS = ("dependabot alerts are disabled",)
+_DEPENDABOT_OPEN = "open"
 
 # Ruleset condition tokens GitHub uses in place of a ref pattern.
 _REF_TOKEN_DEFAULT_BRANCH = (
@@ -1865,6 +1883,9 @@ class GithubCollector(CollectorBase):
                 # `""` is "never asked" (req-github-core-code-scanning). Four states, because
                 # "the feature is off" and "we were refused" are different facts.
                 "code_scanning_observability": "",
+                # Stamped by `_collect_dependabot_alerts`; the same four states
+                # (req-github-core-dependabot-alerts-2).
+                "dependabot_observability": "",
                 "configuration": self._repository_configuration(settings_payload),
                 "tags": {},
             },
@@ -2279,6 +2300,18 @@ class GithubCollector(CollectorBase):
         # walk and the refs/commits, because a finding in a workflow file joins to that workflow
         # by path and an analysis joins to its commit only when that commit is in this batch.
         self._collect_code_scanning(
+            client,
+            full_name,
+            repo_uuid,
+            repo_envelope,
+            {**repo_dims, "github.surface": "security", "github.observation": "execution"},
+            nodes,
+            edges,
+        )
+        # Dependabot alerts (req-github-core-dependabot-alerts), the same finding shape one surface
+        # over. After the workflow walk and the action usages, because a finding whose manifest is
+        # a collected workflow, or whose package is an action this run saw used, is placed on it.
+        self._collect_dependabot_alerts(
             client,
             full_name,
             repo_uuid,
@@ -4952,6 +4985,261 @@ class GithubCollector(CollectorBase):
             "url": str(analysis.get("url") or ""),
             "configuration": analysis,
             "tags": {},
+        }
+
+    def _collect_dependabot_alerts(
+        self,
+        client: GithubClient,
+        full_name: str,
+        repo_uuid: Any,
+        repo_envelope: dict[str, Any],
+        dims: dict[str, str],
+        nodes: list[dict[str, Any]],
+        edges: list[dict[str, Any]],
+    ) -> None:
+        """Collect the repository's Dependabot alerts; mint one finding per alert.
+
+        One REST listing, one permission (`vulnerability_alerts: read`), all four lifecycle
+        states. Every alert lands twice, exactly as a code-scanning alert does: as the GitHub
+        detail (`github_core__dependabot_alert`, everything the API said) and as the generic
+        `compliance_core__compliance_finding` the compliance substrate already understands, joined
+        by `DETAILS_FINDING`. The finding is placed with `CARRIES_COMPLIANCE_FINDING` from the
+        repository always; additionally from the `github_workflow` whose path is the alert's
+        manifest, and from the `github_action` whose action path is the alert's package — the
+        latter only for an action this run saw used, so a pip package never gains an action edge.
+
+        Four states on the repository, because three would lie: `observed` (200 — zero alerts is a
+        fact), `not_enabled` (GitHub says Dependabot alerts are disabled here), `unobservable`
+        (the credential was refused — no alert means nothing) and `""` (never asked).
+
+        The walk follows the Link chain to its end and the verdict is checked; a capped walk is
+        warned as incomplete and is not evidence of absence. The ecosystem values seen are
+        recorded on the run's information record rather than filtered on: the documented enum has
+        no GitHub Actions value and none has been observed (req-github-core-dependabot-alerts-5).
+        """
+        state, alerts, complete, note = self._dependabot_fetch(client, full_name)
+        repo_envelope["node"]["dependabot_observability"] = state
+        if state == _UNOBSERVABLE:
+            self.record_warn(
+                _SITE_DEPENDABOT_UNOBSERVABLE,
+                "DEPENDABOT_UNOBSERVABLE",
+                f"Dependabot alerts NOT observed for {full_name}, which is not the same as no findings: {note}",
+                message_data={"repo": full_name, "note": note},
+            )
+        elif state == _NOT_ENABLED:
+            self.record_info(
+                _SITE_DEPENDABOT_NOT_ENABLED,
+                "DEPENDABOT_NOT_ENABLED",
+                f"{full_name}: GitHub reports Dependabot alerts are disabled for this repository ({note}). "
+                f"No findings because nothing is watching it — a gap, not a clean bill.",
+                message_data={"repo": full_name, "note": note},
+            )
+
+        workflow_by_path = self._walk_state()["by_path"]
+        action_paths = self._usage_tally()["actions"]
+        by_state: dict[str, int] = {}
+        by_ecosystem: dict[str, int] = {}
+        workflow_linked = 0
+        action_linked = 0
+        for alert in alerts:
+            number = alert.get("number")
+            if number is None:
+                continue
+            detail = self._dependabot_alert_fields(full_name, alert)
+            alert_uuid = dependabot_alert_id(full_name, number)
+            finding_uuid = dependabot_finding_id(full_name, number)
+            nodes.append(
+                node_envelope(
+                    entity_id=alert_uuid,
+                    entity_type="github_core__dependabot_alert",
+                    name=f"#{number} {detail['package_name']} {detail['ghsa_id']}".strip(),
+                    dimensions=dims,
+                    fields=detail,
+                )
+            )
+            finding = self._dependabot_finding_fields(detail)
+            nodes.append(
+                node_envelope(
+                    entity_id=finding_uuid,
+                    entity_type="compliance_core__compliance_finding",
+                    name=finding["name"],
+                    dimensions={**dims, "compliance": "finding"},
+                    fields=finding,
+                )
+            )
+            edges.append(
+                self._edge(
+                    "CARRIES_COMPLIANCE_FINDING__compliance_core", repo_uuid, finding_uuid, dims
+                )
+            )
+            edges.append(
+                self._edge("DETAILS_FINDING__github_core", alert_uuid, finding_uuid, dims)
+            )
+            wf_uuid = workflow_by_path.get((full_name, detail["manifest_path"]))
+            if wf_uuid is not None:
+                workflow_linked += 1
+                edges.append(
+                    self._edge(
+                        "CARRIES_COMPLIANCE_FINDING__compliance_core", wf_uuid, finding_uuid, dims
+                    )
+                )
+            if detail["package_name"] and detail["package_name"] in action_paths:
+                action_linked += 1
+                edges.append(
+                    self._edge(
+                        "CARRIES_COMPLIANCE_FINDING__compliance_core",
+                        github_action_id(detail["package_name"]),
+                        finding_uuid,
+                        dims,
+                    )
+                )
+            by_state[detail["state"]] = by_state.get(detail["state"], 0) + 1
+            by_ecosystem[detail["ecosystem"]] = by_ecosystem.get(detail["ecosystem"], 0) + 1
+
+        if state == _OBSERVED and not complete:
+            self.record_warn(
+                _SITE_DEPENDABOT_TRUNCATED,
+                "DEPENDABOT_TRUNCATED",
+                f"{full_name}: the Dependabot walk stopped at the page cap with {len(alerts)} collected and "
+                f"more pending. The alert set is INCOMPLETE; absence of an alert in this batch is not "
+                f"evidence it is fixed or dismissed.",
+                message_data={"repo": full_name, "collected": len(alerts)},
+            )
+        if state == _OBSERVED:
+            self.record_info(
+                _SITE_DEPENDABOT_COLLECTED,
+                "DEPENDABOT_COLLECTED",
+                f"{full_name}: {len(alerts)} Dependabot alert(s)"
+                + (
+                    " (" + ", ".join(f"{n} {s}" for s, n in sorted(by_state.items())) + ")"
+                    if by_state
+                    else ""
+                )
+                + (
+                    "; ecosystems seen: " + ", ".join(f"{e} {n}" for e, n in sorted(by_ecosystem.items()))
+                    if by_ecosystem
+                    else ""
+                )
+                + f"; {workflow_linked} in a collected workflow file, {action_linked} on an action used in this run.",
+                message_data={
+                    "repo": full_name,
+                    "alerts": len(alerts),
+                    "alerts_by_state": by_state,
+                    "ecosystems": by_ecosystem,
+                    "complete": complete,
+                    "workflow_linked": workflow_linked,
+                    "action_linked": action_linked,
+                },
+            )
+
+    def _dependabot_fetch(
+        self, client: GithubClient, full_name: str
+    ) -> tuple[str, list[dict[str, Any]], bool, str]:
+        """The Dependabot listing: ``(state, items, walk_complete, note)``.
+
+        Walks the Link chain to its end. A 403/404 is classified by its BODY into `not_enabled`
+        (GitHub says alerts are disabled) or `unobservable` (the credential was refused); anything
+        else re-raises like every sibling surface.
+        """
+        path = f"/repos/{full_name}/dependabot/alerts"
+        try:
+            items = client.get_paginated(
+                path,
+                params={"state": _DEPENDABOT_STATES, "per_page": str(_DEPENDABOT_PAGE_SIZE)},
+                max_pages=100,
+            )
+        except GithubAPIError as exc:
+            if exc.status not in (403, 404):
+                raise
+            body = (exc.body or "").lower()
+            refused_as = (
+                _NOT_ENABLED
+                if any(marker in body for marker in _DEPENDABOT_NOT_ENABLED_MARKERS)
+                else _UNOBSERVABLE
+            )
+            return refused_as, [], True, f"alerts answered {exc.status}: {(exc.body or '')[:120]}"
+        # A client that cannot say whether the walk finished has NOT proven completeness.
+        complete = bool(getattr(client, "last_walk_complete", False))
+        return _OBSERVED, [item for item in items if isinstance(item, dict)], complete, ""
+
+    @staticmethod
+    def _dependabot_alert_fields(full_name: str, alert: dict[str, Any]) -> dict[str, Any]:
+        """The detail node's fields, flattened from GitHub's nested alert.
+
+        Timestamps pass through as GitHub gave them (a string, or null = GitHub gave null);
+        nested optional strings become `""` when null; the raw alert rides `configuration` so
+        nothing the API said is lost to the flattening. The CVSS pair is v3 when the advisory
+        carries one, else the legacy `cvss` block, else null and `""` — a v4-only advisory reports
+        a 0.0 score with no vector, and that zero is the absence of a score, not a score.
+        """
+        dependency = alert.get("dependency") or {}
+        package = dependency.get("package") or {}
+        advisory = alert.get("security_advisory") or {}
+        vulnerability = alert.get("security_vulnerability") or {}
+        dismissed_by = alert.get("dismissed_by") or {}
+        v3 = (advisory.get("cvss_severities") or {}).get("cvss_v3") or {}
+        legacy = advisory.get("cvss") or {}
+        cvss = v3 if v3.get("vector_string") else legacy if legacy.get("vector_string") else {}
+        return {
+            "full_name": full_name,
+            "number": alert.get("number"),
+            "state": str(alert.get("state") or ""),
+            "created_at": alert.get("created_at"),
+            "updated_at": alert.get("updated_at"),
+            "fixed_at": alert.get("fixed_at"),
+            "dismissed_at": alert.get("dismissed_at"),
+            "auto_dismissed_at": alert.get("auto_dismissed_at"),
+            "dismissed_reason": str(alert.get("dismissed_reason") or ""),
+            "dismissed_comment": str(alert.get("dismissed_comment") or ""),
+            "dismissed_by_login": str(dismissed_by.get("login") or ""),
+            "html_url": str(alert.get("html_url") or ""),
+            "ecosystem": str(package.get("ecosystem") or ""),
+            "package_name": str(package.get("name") or ""),
+            "manifest_path": str(dependency.get("manifest_path") or ""),
+            "dependency_scope": str(dependency.get("scope") or ""),
+            "relationship": str(dependency.get("relationship") or ""),
+            "ghsa_id": str(advisory.get("ghsa_id") or ""),
+            "cve_id": str(advisory.get("cve_id") or ""),
+            "advisory_summary": str(advisory.get("summary") or ""),
+            "advisory_description": str(advisory.get("description") or ""),
+            "severity": str(advisory.get("severity") or vulnerability.get("severity") or ""),
+            "cvss_score": cvss.get("score") if cvss else None,
+            "cvss_vector": str(cvss.get("vector_string") or ""),
+            "cwes": [str(c.get("cwe_id")) for c in (advisory.get("cwes") or []) if c.get("cwe_id")],
+            "vulnerable_version_range": str(vulnerability.get("vulnerable_version_range") or ""),
+            "first_patched_version": str((vulnerability.get("first_patched_version") or {}).get("identifier") or ""),
+            "configuration": alert,
+            "tags": {},
+        }
+
+    @staticmethod
+    def _dependabot_finding_fields(detail: dict[str, Any]) -> dict[str, Any]:
+        """Project the alert onto the compliance substrate's finding.
+
+        `status` folds GitHub's four states into the substrate's two: `open` stays open; `fixed`,
+        `dismissed` and `auto_dismissed` are all `resolved`, and the true state lives on the
+        detail node one edge away. `source` and `source_key` are the finding's IDENTITY
+        (compliance_core's declared natural key); both come from `identity.py` so the value written
+        here and the value the ref carries cannot drift apart. See `_code_scanning_finding_fields`.
+        """
+        name = (
+            f"{detail['package_name']} {detail['ghsa_id']}".strip()
+            or f"dependabot alert #{detail['number']}"
+        )
+        where = f"{detail['manifest_path']}: {detail['package_name']} {detail['vulnerable_version_range']}".strip(": ")
+        patched = (
+            f"first patched version {detail['first_patched_version']}"
+            if detail["first_patched_version"]
+            else "no patched version"
+        )
+        parts = [p for p in (detail["advisory_summary"], f"{where}; {patched}" if where else patched) if p]
+        return {
+            "source": COMPLIANCE_FINDING_SOURCE,
+            "source_key": dependabot_finding_source_key(detail["full_name"], detail["number"]),
+            "name": name[:255],
+            "summary": detail["advisory_summary"][:500],
+            "description": "\n\n".join(parts).strip(),
+            "status": "open" if detail["state"] == _DEPENDABOT_OPEN else "resolved",
         }
 
     def _collect_secrets(

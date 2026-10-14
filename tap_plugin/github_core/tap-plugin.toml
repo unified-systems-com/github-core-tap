@@ -16,7 +16,7 @@ description = "GitHub Actions models — the pipeline as declared (workflows, jo
 depends_on = [
     { slug = "git_core", note = "The neutral Git vocabulary (github-core#76): the collector mints git_core__git_repository / git_ref / git_commit through tap_plugin.git_core.identity and targets those types from DECLARES_REF-adjacent edges (PROTECTS, SCOPED_TO_REF, EVALUATED_ON_REF, TARGETS_REF) and from commit_observation." },
     { slug = "identity_core", note = "ENABLED_ON_REPOSITORY sources the identity_core__oidc_issuer type; the collector mints the issuer node via identity_core.issuer (the OIDC vocabulary lives there, not here)." },
-    { slug = "compliance_core", note = "The neutral finding substrate: the collector mints compliance_core__compliance_finding for every scanner alert (code scanning first; Dependabot and secret scanning ride the same shape) and places it with CARRIES_COMPLIANCE_FINDING; the source-specific detail node (code_scanning_alert) hangs off it via DETAILS_FINDING. Vocabulary + type dependency, downward-only." },
+    { slug = "compliance_core", note = "The neutral finding substrate: the collector mints compliance_core__compliance_finding for every scanner alert (code scanning and Dependabot today; secret scanning rides the same shape) and places it with CARRIES_COMPLIANCE_FINDING; the source-specific detail node (code_scanning_alert, dependabot_alert) hangs off it via DETAILS_FINDING. Vocabulary + type dependency, downward-only." },
 ]
 
 [models]
@@ -46,6 +46,7 @@ github_core__github_custom_property = "tap_plugin.github_core.models.github_cust
 github_core__pull_request = "tap_plugin.github_core.models.pull_request.PullRequest"
 github_core__code_scanning_alert = "tap_plugin.github_core.models.code_scanning_alert.CodeScanningAlert"
 github_core__code_scanning_analysis = "tap_plugin.github_core.models.code_scanning_analysis.CodeScanningAnalysis"
+github_core__dependabot_alert = "tap_plugin.github_core.models.dependabot_alert.DependabotAlert"
 github_core__collection_scope = "tap_plugin.github_core.models.collection_scope.CollectionScope"
 
 [edges]

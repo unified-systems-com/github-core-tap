@@ -219,6 +219,14 @@
         "read"
       ]
     },
+    "organization_external_properties_for_repos": {
+      "description": "The level of permission to grant the access token for managing external custom properties for repositories in an organization.",
+      "levels": [
+        "read",
+        "write",
+        "admin"
+      ]
+    },
     "organization_hooks": {
       "description": "The level of permission to grant the access token to manage the post-receive hooks for an organization.",
       "levels": [
@@ -2148,6 +2156,29 @@
       "present": true,
       "source": "code_scanning_analyses"
     },
+    "/repos/{owner}/{repo}/dependabot/alerts": {
+      "item_properties": [
+        "assignees",
+        "auto_dismissed_at",
+        "created_at",
+        "dependency",
+        "dismissal_request",
+        "dismissed_at",
+        "dismissed_by",
+        "dismissed_comment",
+        "dismissed_reason",
+        "fixed_at",
+        "html_url",
+        "number",
+        "security_advisory",
+        "security_vulnerability",
+        "state",
+        "updated_at",
+        "url"
+      ],
+      "present": true,
+      "source": "dependabot_alerts"
+    },
     "/repos/{owner}/{repo}/environments/{environment_name}": {
       "item_properties": [
         "created_at",
@@ -2294,8 +2325,8 @@
       "source": "account"
     }
   },
-  "spec_commit": "5c01d68e9b6f06803a2c377855b310f7f2279def",
-  "spec_sha256": "4340ac8202faa2cfe78eee40e0ff38fd08375ed6ed8507bfc43f720f0ee6df95",
-  "spec_url": "https://raw.githubusercontent.com/github/rest-api-description/5c01d68e9b6f06803a2c377855b310f7f2279def/descriptions/api.github.com/api.github.com.json",
+  "spec_commit": "77ed1eaed167921d7de0aa476f1383bcaf2f88ef",
+  "spec_sha256": "7e81618beb08bec8cf692dffd28615a9c87a2db335bd425ce8ab5a7d3f949b21",
+  "spec_url": "https://raw.githubusercontent.com/github/rest-api-description/77ed1eaed167921d7de0aa476f1383bcaf2f88ef/descriptions/api.github.com/api.github.com.json",
   "spec_version": "1.1.4"
 }

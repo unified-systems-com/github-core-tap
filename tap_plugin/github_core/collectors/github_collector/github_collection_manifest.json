@@ -606,6 +606,48 @@
       "description": "The most recent hundred analyses — one per SARIF upload — so 'did the scanner run on this commit' is a traversal (ANALYZES_REPOSITORY always; ANALYZES_COMMIT only when the commit is in this batch) rather than an inference from the absence of alerts (req-github-core-code-scanning). ONE page, newest first; a pending next page is warned, and absence of an analysis in this batch is not evidence it did not run. EMPTY MEANS the same three things as the alerts source, read off the repository's `code_scanning_observability`. Same permission, same failure posture."
     },
     {
+      "name": "dependabot_alerts",
+      "kind": "rest_endpoint",
+      "path": "/repos/{owner}/{repo}/dependabot/alerts",
+      "query": {
+        "state": "open,fixed,dismissed,auto_dismissed",
+        "per_page": "100"
+      },
+      "item_path": "[*]",
+      "target_entity_type": "github_core__dependabot_alert",
+      "fields": [
+        "number",
+        "state",
+        "created_at",
+        "updated_at",
+        "fixed_at",
+        "dismissed_at",
+        "auto_dismissed_at",
+        "dismissed_reason",
+        "dismissed_comment",
+        "dismissed_by_login",
+        "html_url",
+        "ecosystem",
+        "package_name",
+        "manifest_path",
+        "dependency_scope",
+        "relationship",
+        "ghsa_id",
+        "cve_id",
+        "advisory_summary",
+        "advisory_description",
+        "severity",
+        "cvss_score",
+        "cvss_vector",
+        "cwes",
+        "vulnerable_version_range",
+        "first_patched_version"
+      ],
+      "permission": "repository:vulnerability_alerts:read",
+      "permission_failure": "degrade_with_warning",
+      "description": "Every Dependabot alert on the repository in every state (req-github-core-dependabot-alerts): the vulnerable package and the manifest it was found in, the advisory and its severity, the vulnerable range and the first patched version, and what became of the alert. All four states are asked for by name (open, fixed, dismissed, auto_dismissed) because a fixed alert is history and 'no open alerts' is only meaningful beside 'N fixed'. The endpoint is cursor-paginated and rejects a page parameter with a 400, so the walk follows the Link header to its end; a capped walk is warned as incomplete. Each alert lands twice — as this detail node and as the generic compliance_core__compliance_finding github_core mints for it (DETAILS_FINDING joins them; CARRIES_COMPLIANCE_FINDING from the repository, from the workflow whose path is the alert's manifest, and from the github_action whose action path is the alert's package when that action was used in the run). No ecosystem filter: the documented enum has no GitHub Actions value and none has been observed, so every alert is collected and the ecosystems seen are recorded. EMPTY MEANS: zero alerts is a fact only when the repository node says `dependabot_observability = observed`; `not_enabled` means GitHub reports Dependabot alerts disabled for the repository, and `unobservable` means the credential was refused — neither is a clean bill. Actions alerts exist only for version-tag references, never SHA pins, so an absent alert on a SHA-pinned action is no evidence about it."
+    },
+    {
       "name": "releases",
       "kind": "custom_fn",
       "path": "POST /graphql (repository.releases)",
@@ -1046,19 +1088,31 @@
       "slug": "CARRIES_COMPLIANCE_FINDING__compliance_core",
       "source": "github_core__github_repository",
       "target": "compliance_core__compliance_finding",
-      "condition": "compliance_core-owned edge type; one per code-scanning alert, always"
+      "condition": "compliance_core-owned edge type; one per code-scanning alert and one per Dependabot alert, always"
     },
     {
       "slug": "CARRIES_COMPLIANCE_FINDING__compliance_core",
       "source": "github_core__github_workflow",
       "target": "compliance_core__compliance_finding",
-      "condition": "compliance_core-owned; the alert's most_recent_instance.location.path equals the path of a workflow collected in this run for the same repository"
+      "condition": "compliance_core-owned; the alert's most_recent_instance.location.path (code scanning) or dependency.manifest_path (Dependabot) equals the path of a workflow collected in this run for the same repository"
+    },
+    {
+      "slug": "CARRIES_COMPLIANCE_FINDING__compliance_core",
+      "source": "github_core__github_action",
+      "target": "compliance_core__compliance_finding",
+      "condition": "compliance_core-owned; a Dependabot alert whose dependency.package.name is the action path of an action used by a workflow collected in this run. A pip or npm package never matches, so it lands with the repository edge only"
     },
     {
       "slug": "DETAILS_FINDING__github_core",
       "source": "github_core__code_scanning_alert",
       "target": "compliance_core__compliance_finding",
       "condition": "always; the alert is the evidence behind the substrate finding github_core minted for it"
+    },
+    {
+      "slug": "DETAILS_FINDING__github_core",
+      "source": "github_core__dependabot_alert",
+      "target": "compliance_core__compliance_finding",
+      "condition": "always; the Dependabot alert is the evidence behind the substrate finding github_core minted for it"
     },
     {
       "slug": "ANALYZES_REPOSITORY__github_core",

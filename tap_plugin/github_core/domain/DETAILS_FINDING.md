@@ -6,7 +6,7 @@ The source-specific detail node points at the generic finding it details — one
 
 ## Purpose
 
-The ruling of 2026-09-09 (github-core#89) splits every GitHub-sourced finding into two nodes: a `compliance_core__compliance_finding` that any view of findings can list without knowing where it came from, and a source-specific detail node (`code_scanning_alert` first; `dependabot_alert` and a secret-scanning detail later) that carries what the generic shape cannot. This edge is the join between them. It is what lets a finding list stay one query across CodeQL, Sonar, Dependabot and zizmor while a rule that needs `security_severity_level` or `dismissed_reason` still finds it in one traversal.
+The ruling of 2026-09-09 (github-core#89) splits every GitHub-sourced finding into two nodes: a `compliance_core__compliance_finding` that any view of findings can list without knowing where it came from, and a source-specific detail node (`code_scanning_alert` first, then `dependabot_alert`; a secret-scanning detail later) that carries what the generic shape cannot. This edge is the join between them. It is what lets a finding list stay one query across CodeQL, Sonar, Dependabot and zizmor while a rule that needs `security_severity_level` or `dismissed_reason` still finds it in one traversal.
 
 The direction is detail → finding, not finding → detail, because the finding must not know its sources: compliance_core is a substrate with `depends_on = []` and its edge vocabulary cannot name a github_core type as a target. A github_core-owned edge whose *source* is github_core's and whose *target* is compliance_core's respects the dependency direction; the reverse would not.
 
@@ -25,7 +25,7 @@ One edge per (source, target) pair, id minted by `identity.edge_id`; property-fr
 - **Not the asset link.** Where the finding sits — which repository, which workflow file — is compliance_core's `CARRIES_COMPLIANCE_FINDING` from the asset to the finding. This edge never carries placement.
 - **Not evidence.** compliance_core's `CITES_COMPLIANCE_EVIDENCE` (finding → evidence) is for artefacts that support or refute a finding; the detail node is the finding's own body, not evidence about it.
 - **Not `REPORTED_BY`.** No edge from an analysis to a finding is drawn: GitHub does not tie alerts to analysis ids, and this edge is not the place to fake it.
-- **Not a wildcard yet.** v0 registers `code_scanning_alert` as the only source; `dependabot_alert` and the secret-scanning detail are added to the source list when their nodes are built (the amended `req-github-core-dependabot-alerts`), not pre-declared.
+- **Not a wildcard yet.** v0 registers `code_scanning_alert` and `dependabot_alert` as the sources; the secret-scanning detail is added to the source list when its node is built, not pre-declared.
 
 ## Neutrality
 
@@ -51,7 +51,7 @@ Emitted by the collector from the same alert read that minted both endpoints (`r
 
 ## Endpoints
 
-- **Source:** `github_core__code_scanning_alert` (v0; `dependabot_alert` and a secret-scanning detail join the source list when built)
+- **Source:** `github_core__code_scanning_alert` and `github_core__dependabot_alert` (v0; a secret-scanning detail joins the source list when built)
 - **Target:** `compliance_core__compliance_finding`
 - **Dimensions:** `git.host`, `github.surface: security`, `github.observation: execution` — the alert is a scanner's recorded assertion, an event, not a declared configuration.
 - **Properties:** none — 1:1 by construction; the facts are on the two nodes.
