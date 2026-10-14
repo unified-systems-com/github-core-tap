@@ -554,6 +554,31 @@ class TestModels:
             assert result.success, (envelope["node"]["number"], result.errors)
 
     @pytest.mark.spec("req-github-core-dependabot-alerts-1")
+    def test_repository_controlled_strings_longer_than_any_old_column_are_stored(self) -> None:
+        """A deep manifest path or a long module name comes from the repository's own tree: it must
+        not be able to make the database reject the alert (and with it a batch)."""
+        base = _ALERTS["open"][0]
+        deep = "a/" * 300 + "requirements.txt"
+        long = _synthetic(
+            base,
+            908,
+            dependency={"package": {"ecosystem": "go", "name": "example.com/" + "x" * 400}, "manifest_path": deep},
+            security_vulnerability={
+                "package": {"ecosystem": "go", "name": "n"},
+                "severity": "high",
+                "vulnerable_version_range": ">= 1.0.0, < 2.0.0, " + "|| >= 3.0.0 " * 40,
+                "first_patched_version": {"identifier": "v" + "9" * 200},
+            },
+        )
+        _, nodes, _, _, _ = _collect(_FakeClient(alerts=[long]))
+        payload = _by_number(nodes, _ALERT_TYPE)[908]["node"]
+        assert len(payload["manifest_path"]) > 512 and len(payload["package_name"]) > 255
+        result = create_node(_ALERT_TYPE, dict(payload))
+        assert result.success, result.errors
+        row = get_model_class(_ALERT_TYPE).objects.get(entity_id=result.entity_id)
+        assert row.manifest_path == deep and row.package_name == payload["package_name"]
+
+    @pytest.mark.spec("req-github-core-dependabot-alerts-1")
     def test_a_state_outside_githubs_four_is_refused(self) -> None:
         result = create_node(_ALERT_TYPE, {"full_name": _REPO, "number": 1, "state": "resolved"})
         assert not result.success

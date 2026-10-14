@@ -5057,7 +5057,7 @@ class GithubCollector(CollectorBase):
                 node_envelope(
                     entity_id=alert_uuid,
                     entity_type="github_core__dependabot_alert",
-                    name=f"#{number} {detail['package_name']} {detail['ghsa_id']}".strip(),
+                    name=f"#{number} {detail['package_name']} {detail['ghsa_id']}".strip()[:255],
                     dimensions=dims,
                     fields=detail,
                 )

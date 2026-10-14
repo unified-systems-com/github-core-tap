@@ -155,9 +155,12 @@ class DependabotAlert(BaseModel):
     #: GitHub's ecosystem word (`pip`, `npm`, ...), recorded as given — never filtered on.
     ecosystem = models.CharField(max_length=32, blank=True, default="", db_index=True)
     #: The package the manifest names; the join to a `github_action` when it is an action path.
-    package_name = models.CharField(max_length=255, blank=True, default="", db_index=True)
+    #: Text, not a bounded column: these four strings come from the repository's own tree and the
+    #: advisory, not from us, so a deep path or a long module name must not be able to reject the
+    #: alert (and with it a batch) at the database.
+    package_name = models.TextField(blank=True, default="")
     #: The manifest file the dependency was found in (`uv.lock`); the join to a workflow when it is one.
-    manifest_path = models.CharField(max_length=512, blank=True, default="")
+    manifest_path = models.TextField(blank=True, default="")
     #: `runtime` / `development`, or `""` when GitHub gave none (the API's `dependency.scope`).
     dependency_scope = models.CharField(max_length=32, blank=True, default="")
     #: `direct` / `transitive` / `unknown`, or `""` (the API's `dependency.relationship`).
@@ -171,9 +174,9 @@ class DependabotAlert(BaseModel):
     cvss_vector = models.CharField(max_length=255, blank=True, default="")
     #: `["CWE-208"]` — the advisory's CWE identifiers.
     cwes = models.JSONField(default=list, blank=True)
-    vulnerable_version_range = models.CharField(max_length=255, blank=True, default="")
+    vulnerable_version_range = models.TextField(blank=True, default="")
     #: The first version that fixes it; `""` when no patched version exists.
-    first_patched_version = models.CharField(max_length=128, blank=True, default="")
+    first_patched_version = models.TextField(blank=True, default="")
     #: The raw alert as returned, so nothing the model does not name is lost.
     configuration = models.JSONField(default=dict, blank=True)
     tags = models.JSONField(default=dict, blank=True)
@@ -185,7 +188,8 @@ class DependabotAlert(BaseModel):
         if self.number is None:
             return ""
         head = " ".join(part for part in (self.package_name, self.ghsa_id) if part)
-        return f"{head} #{self.number}" if head else f"{self.full_name}#{self.number}"
+        # The entity's display name is a bounded column; the package name is not ours to bound.
+        return (f"{head} #{self.number}" if head else f"{self.full_name}#{self.number}")[:255]
 
     def __str__(self) -> str:
         return self.get_name()
