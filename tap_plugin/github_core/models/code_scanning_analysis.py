@@ -57,7 +57,7 @@ class CodeScanningAnalysis(BaseModel):
         "tool_name": {"type": "string"},
         "tool_version": {"type": "string"},
         "tool_guid": {"type": "string"},
-        "created_at": {"type": ["string", "null"]},
+        "created_at": {"type": ["string", "null"], "format": "date-time"},
         "results_count": {"type": "integer"},
         "rules_count": {"type": "integer"},
         "sarif_id": {"type": "string"},
@@ -81,7 +81,7 @@ class CodeScanningAnalysis(BaseModel):
         "tool_version": {"validation": "jsonschema", "schema": {"type": "string"}},
         "tool_guid": {"validation": "jsonschema", "schema": {"type": "string"}},
         # null is "we did not observe a timestamp", never "now".
-        "created_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"]}},
+        "created_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
         "results_count": {"validation": "jsonschema", "schema": {"type": "integer", "minimum": 0}},
         "rules_count": {"validation": "jsonschema", "schema": {"type": "integer", "minimum": 0}},
         "sarif_id": {"validation": "jsonschema", "schema": {"type": "string"}},

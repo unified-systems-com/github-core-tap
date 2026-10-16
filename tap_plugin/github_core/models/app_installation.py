@@ -90,7 +90,7 @@ class AppInstallation(BaseModel):
         "permissions": {"type": "object"},
         "events": {"type": "array"},
         "suspended": {"type": "boolean"},
-        "installed_at": {"type": ["string", "null"]},
+        "installed_at": {"type": ["string", "null"], "format": "date-time"},
         "html_url": {"type": "string"},
         "configuration": {"type": "object"},
         "tags": {"type": "object"},

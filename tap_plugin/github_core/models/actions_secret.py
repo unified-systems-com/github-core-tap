@@ -72,8 +72,8 @@ class ActionsSecret(BaseModel):
         "name": {"type": "string", "minLength": 1},
         "name_reported": {"type": "string"},
         "visibility": {"type": "string"},
-        "created_at": {"type": ["string", "null"]},
-        "updated_at": {"type": ["string", "null"]},
+        "created_at": {"type": ["string", "null"], "format": "date-time"},
+        "updated_at": {"type": ["string", "null"], "format": "date-time"},
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }

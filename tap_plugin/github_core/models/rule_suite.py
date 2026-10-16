@@ -76,7 +76,7 @@ class RuleSuite(BaseModel):
         "actor_id": {"type": ["integer", "null"]},
         "before_sha": {"type": "string"},
         "after_sha": {"type": "string"},
-        "pushed_at": {"type": ["string", "null"]},
+        "pushed_at": {"type": ["string", "null"], "format": "date-time"},
         "bypassed_rules": {"type": "array"},
         "configuration": {"type": "object"},
         "tags": {"type": "object"},

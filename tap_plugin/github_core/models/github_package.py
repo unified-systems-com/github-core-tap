@@ -73,8 +73,8 @@ class GithubPackage(BaseModel):
         "version_count": {"type": ["integer", "null"]},
         "repository_full_name": {"type": "string"},
         "html_url": {"type": "string"},
-        "created_at": {"type": ["string", "null"]},
-        "updated_at": {"type": ["string", "null"]},
+        "created_at": {"type": ["string", "null"], "format": "date-time"},
+        "updated_at": {"type": ["string", "null"], "format": "date-time"},
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }

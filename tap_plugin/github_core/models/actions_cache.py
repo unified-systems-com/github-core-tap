@@ -54,8 +54,8 @@ class ActionsCache(BaseModel):
         "version": {"type": "string"},
         "ref": {"type": "string"},
         "size_in_bytes": {"type": ["integer", "null"]},
-        "created_at": {"type": ["string", "null"]},
-        "last_accessed_at": {"type": ["string", "null"]},
+        "created_at": {"type": ["string", "null"], "format": "date-time"},
+        "last_accessed_at": {"type": ["string", "null"], "format": "date-time"},
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }
