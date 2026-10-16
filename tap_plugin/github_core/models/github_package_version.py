@@ -10,6 +10,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME
 
 
 class GithubPackageVersion(BaseModel):
@@ -56,8 +57,8 @@ class GithubPackageVersion(BaseModel):
         "purl": {"type": "string"},
         "container_tags": {"type": "array"},
         "html_url": {"type": "string"},
-        "created_at": {"type": ["string", "null"], "format": "date-time"},
-        "updated_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": DATE_TIME,
+        "updated_at": DATE_TIME,
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }

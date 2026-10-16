@@ -24,6 +24,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME
 
 
 class ActionsSecret(BaseModel):
@@ -72,8 +73,8 @@ class ActionsSecret(BaseModel):
         "name": {"type": "string", "minLength": 1},
         "name_reported": {"type": "string"},
         "visibility": {"type": "string"},
-        "created_at": {"type": ["string", "null"], "format": "date-time"},
-        "updated_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": DATE_TIME,
+        "updated_at": DATE_TIME,
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }

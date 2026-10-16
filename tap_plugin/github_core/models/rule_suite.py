@@ -19,6 +19,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME
 
 
 class RuleSuite(BaseModel):
@@ -76,7 +77,7 @@ class RuleSuite(BaseModel):
         "actor_id": {"type": ["integer", "null"]},
         "before_sha": {"type": "string"},
         "after_sha": {"type": "string"},
-        "pushed_at": {"type": ["string", "null"], "format": "date-time"},
+        "pushed_at": DATE_TIME,
         "bypassed_rules": {"type": "array"},
         "configuration": {"type": "object"},
         "tags": {"type": "object"},

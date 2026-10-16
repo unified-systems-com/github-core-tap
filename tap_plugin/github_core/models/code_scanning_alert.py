@@ -13,6 +13,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME, DATE_TIME_VALIDATION
 
 
 class CodeScanningAlert(BaseModel):
@@ -96,10 +97,10 @@ class CodeScanningAlert(BaseModel):
         "full_name": {"type": "string", "minLength": 1},
         "number": {"type": "integer"},
         "state": {"type": "string"},
-        "created_at": {"type": ["string", "null"], "format": "date-time"},
-        "updated_at": {"type": ["string", "null"], "format": "date-time"},
-        "fixed_at": {"type": ["string", "null"], "format": "date-time"},
-        "dismissed_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": DATE_TIME,
+        "updated_at": DATE_TIME,
+        "fixed_at": DATE_TIME,
+        "dismissed_at": DATE_TIME,
         "dismissed_reason": {"type": "string"},
         "dismissed_comment": {"type": "string"},
         "dismissed_by_login": {"type": "string"},
@@ -131,10 +132,10 @@ class CodeScanningAlert(BaseModel):
         "number": {"validation": "jsonschema", "schema": {"type": "integer", "minimum": 1}},
         "state": {"validation": "jsonschema", "schema": {"type": "string", "enum": STATES}},
         # null is "we did not observe a timestamp", never "now".
-        "created_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
-        "updated_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
-        "fixed_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
-        "dismissed_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
+        "created_at": DATE_TIME_VALIDATION,
+        "updated_at": DATE_TIME_VALIDATION,
+        "fixed_at": DATE_TIME_VALIDATION,
+        "dismissed_at": DATE_TIME_VALIDATION,
         # GitHub's vocabulary verbatim: "false positive", "won't fix", "used in tests"; "" = not dismissed.
         "dismissed_reason": {"validation": "jsonschema", "schema": {"type": "string"}},
         "dismissed_comment": {"validation": "jsonschema", "schema": {"type": "string"}},

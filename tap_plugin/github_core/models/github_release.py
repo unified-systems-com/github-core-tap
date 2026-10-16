@@ -10,6 +10,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME
 
 
 class GithubRelease(BaseModel):
@@ -64,8 +65,8 @@ class GithubRelease(BaseModel):
         "is_latest": {"type": ["boolean", "null"]},
         "author_login": {"type": "string"},
         "target_sha": {"type": "string"},
-        "created_at": {"type": ["string", "null"], "format": "date-time"},
-        "published_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": DATE_TIME,
+        "published_at": DATE_TIME,
         "html_url": {"type": "string"},
         "asset_count": {"type": ["integer", "null"]},
         "assets": {"type": "array"},

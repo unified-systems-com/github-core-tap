@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME
 
 
 class ActionsCache(BaseModel):
@@ -54,8 +55,8 @@ class ActionsCache(BaseModel):
         "version": {"type": "string"},
         "ref": {"type": "string"},
         "size_in_bytes": {"type": ["integer", "null"]},
-        "created_at": {"type": ["string", "null"], "format": "date-time"},
-        "last_accessed_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": DATE_TIME,
+        "last_accessed_at": DATE_TIME,
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }

@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME
 
 
 class GithubActionsJob(BaseModel):
@@ -39,9 +40,9 @@ class GithubActionsJob(BaseModel):
         "name": {"type": "string"},
         "status": {"type": "string"},
         "conclusion": {"type": "string"},
-        "created_at": {"type": ["string", "null"], "format": "date-time"},
-        "started_at": {"type": ["string", "null"], "format": "date-time"},
-        "completed_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": DATE_TIME,
+        "started_at": DATE_TIME,
+        "completed_at": DATE_TIME,
         "html_url": {"type": "string"},
         "configuration": {"type": "object"},
         "tags": {"type": "object"},

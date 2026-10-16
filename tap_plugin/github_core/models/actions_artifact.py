@@ -13,6 +13,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME
 
 
 class ActionsArtifact(BaseModel):
@@ -61,9 +62,9 @@ class ActionsArtifact(BaseModel):
         "size_in_bytes": {"type": ["integer", "null"]},
         "digest": {"type": "string"},
         "expired": {"type": "boolean"},
-        "expires_at": {"type": ["string", "null"], "format": "date-time"},
-        "created_at": {"type": ["string", "null"], "format": "date-time"},
-        "updated_at": {"type": ["string", "null"], "format": "date-time"},
+        "expires_at": DATE_TIME,
+        "created_at": DATE_TIME,
+        "updated_at": DATE_TIME,
         "run_id": {"type": ["integer", "null"]},
         "head_sha": {"type": "string"},
         "head_branch": {"type": "string"},

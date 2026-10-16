@@ -11,6 +11,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import DATE_TIME, DATE_TIME_VALIDATION
 
 
 class PullRequest(BaseModel):
@@ -85,10 +86,10 @@ class PullRequest(BaseModel):
         "review_decision": {"type": "string"},
         "mergeable": {"type": "string"},
         "merge_commit_sha": {"type": "string"},
-        "created_at": {"type": ["string", "null"], "format": "date-time"},
-        "updated_at": {"type": ["string", "null"], "format": "date-time"},
-        "closed_at": {"type": ["string", "null"], "format": "date-time"},
-        "merged_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": DATE_TIME,
+        "updated_at": DATE_TIME,
+        "closed_at": DATE_TIME,
+        "merged_at": DATE_TIME,
         "commit_count": {"type": ["integer", "null"]},
         "additions": {"type": ["integer", "null"]},
         "deletions": {"type": ["integer", "null"]},
@@ -125,10 +126,10 @@ class PullRequest(BaseModel):
         # lazily; a first read often says UNKNOWN). Never coerced to a boolean.
         "mergeable": {"validation": "jsonschema", "schema": {"type": "string"}},
         "merge_commit_sha": {"validation": "jsonschema", "schema": {"type": "string"}},
-        "created_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
-        "updated_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
-        "closed_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
-        "merged_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"], "format": "date-time"}},
+        "created_at": DATE_TIME_VALIDATION,
+        "updated_at": DATE_TIME_VALIDATION,
+        "closed_at": DATE_TIME_VALIDATION,
+        "merged_at": DATE_TIME_VALIDATION,
         "commit_count": {"validation": "jsonschema", "schema": {"type": ["integer", "null"]}},
         "additions": {"validation": "jsonschema", "schema": {"type": ["integer", "null"]}},
         "deletions": {"validation": "jsonschema", "schema": {"type": ["integer", "null"]}},
