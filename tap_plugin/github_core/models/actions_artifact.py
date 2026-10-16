@@ -13,7 +13,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
-from tap_plugin.github_core.models.schema_types import DATE_TIME
+from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
 
 class ActionsArtifact(BaseModel):
@@ -62,9 +62,7 @@ class ActionsArtifact(BaseModel):
         "size_in_bytes": {"type": ["integer", "null"]},
         "digest": {"type": "string"},
         "expired": {"type": "boolean"},
-        "expires_at": DATE_TIME,
-        "created_at": DATE_TIME,
-        "updated_at": DATE_TIME,
+        **timestamps("expires_at", "created_at", "updated_at"),
         "run_id": {"type": ["integer", "null"]},
         "head_sha": {"type": "string"},
         "head_branch": {"type": "string"},
@@ -88,18 +86,7 @@ class ActionsArtifact(BaseModel):
         },
         "digest": {"validation": "jsonschema", "schema": {"type": "string"}},
         "expired": {"validation": "jsonschema", "schema": {"type": "boolean"}},
-        "expires_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
-        "created_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
-        "updated_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
+        **timestamp_validations("expires_at", "created_at", "updated_at"),
         "run_id": {"validation": "jsonschema", "schema": {"type": ["integer", "null"]}},
         "head_sha": {"validation": "jsonschema", "schema": {"type": "string"}},
         "head_branch": {"validation": "jsonschema", "schema": {"type": "string"}},

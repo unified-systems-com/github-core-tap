@@ -5,7 +5,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
-from tap_plugin.github_core.models.schema_types import DATE_TIME
+from tap_plugin.github_core.models.schema_types import timestamps
 
 
 class GithubActionsRun(BaseModel):
@@ -45,9 +45,7 @@ class GithubActionsRun(BaseModel):
         "conclusion": {"type": "string"},
         "head_sha": {"type": "string"},
         "head_branch": {"type": "string"},
-        "created_at": DATE_TIME,
-        "run_started_at": DATE_TIME,
-        "completed_at": DATE_TIME,
+        **timestamps("created_at", "run_started_at", "completed_at"),
         "run_attempt": {"type": ["integer", "null"]},
         "actor_login": {"type": "string"},
         "triggering_actor_login": {"type": "string"},

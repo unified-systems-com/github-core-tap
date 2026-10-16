@@ -13,7 +13,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
-from tap_plugin.github_core.models.schema_types import DATE_TIME, DATE_TIME_VALIDATION
+from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
 
 class DependabotAlert(BaseModel):
@@ -74,11 +74,7 @@ class DependabotAlert(BaseModel):
         "full_name": {"type": "string", "minLength": 1},
         "number": {"type": "integer"},
         "state": {"type": "string"},
-        "created_at": DATE_TIME,
-        "updated_at": DATE_TIME,
-        "fixed_at": DATE_TIME,
-        "dismissed_at": DATE_TIME,
-        "auto_dismissed_at": DATE_TIME,
+        **timestamps("created_at", "updated_at", "fixed_at", "dismissed_at", "auto_dismissed_at"),
         "dismissed_reason": {"type": "string"},
         "dismissed_comment": {"type": "string"},
         "dismissed_by_login": {"type": "string"},
@@ -107,11 +103,7 @@ class DependabotAlert(BaseModel):
         "number": {"validation": "jsonschema", "schema": {"type": "integer", "minimum": 1}},
         "state": {"validation": "jsonschema", "schema": {"type": "string", "enum": STATES}},
         # null is "we did not observe a timestamp", never "now".
-        "created_at": DATE_TIME_VALIDATION,
-        "updated_at": DATE_TIME_VALIDATION,
-        "fixed_at": DATE_TIME_VALIDATION,
-        "dismissed_at": DATE_TIME_VALIDATION,
-        "auto_dismissed_at": DATE_TIME_VALIDATION,
+        **timestamp_validations("created_at", "updated_at", "fixed_at", "dismissed_at", "auto_dismissed_at"),
         # GitHub's vocabulary verbatim ("tolerable_risk", "no_bandwidth", ...); "" = not dismissed.
         "dismissed_reason": {"validation": "jsonschema", "schema": {"type": "string"}},
         "dismissed_comment": {"validation": "jsonschema", "schema": {"type": "string"}},

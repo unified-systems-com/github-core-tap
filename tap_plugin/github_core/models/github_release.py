@@ -10,7 +10,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
-from tap_plugin.github_core.models.schema_types import DATE_TIME
+from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
 
 class GithubRelease(BaseModel):
@@ -65,8 +65,7 @@ class GithubRelease(BaseModel):
         "is_latest": {"type": ["boolean", "null"]},
         "author_login": {"type": "string"},
         "target_sha": {"type": "string"},
-        "created_at": DATE_TIME,
-        "published_at": DATE_TIME,
+        **timestamps("created_at", "published_at"),
         "html_url": {"type": "string"},
         "asset_count": {"type": ["integer", "null"]},
         "assets": {"type": "array"},
@@ -100,14 +99,7 @@ class GithubRelease(BaseModel):
         },
         "author_login": {"validation": "jsonschema", "schema": {"type": "string"}},
         "target_sha": {"validation": "jsonschema", "schema": {"type": "string"}},
-        "created_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
-        "published_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
+        **timestamp_validations("created_at", "published_at"),
         "html_url": {"validation": "jsonschema", "schema": {"type": "string"}},
         "asset_count": {
             "validation": "jsonschema",

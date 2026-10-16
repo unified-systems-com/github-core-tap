@@ -12,3 +12,13 @@ DATE_TIME: Final[dict[str, Any]] = {"type": ["string", "null"], "format": "date-
 
 DATE_TIME_VALIDATION: Final[dict[str, Any]] = {"validation": "jsonschema", "schema": DATE_TIME}
 """The same timestamp, for `FIELD_VALIDATION_SCHEMA`."""
+
+
+def timestamps(*names: str) -> dict[str, dict[str, Any]]:
+    """`FIELD_CRUD_SCHEMA` entries for several timestamp fields."""
+    return dict.fromkeys(names, DATE_TIME)
+
+
+def timestamp_validations(*names: str) -> dict[str, dict[str, Any]]:
+    """`FIELD_VALIDATION_SCHEMA` entries for several timestamp fields."""
+    return dict.fromkeys(names, DATE_TIME_VALIDATION)

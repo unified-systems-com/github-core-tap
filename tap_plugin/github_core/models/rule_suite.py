@@ -19,7 +19,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
-from tap_plugin.github_core.models.schema_types import DATE_TIME
+from tap_plugin.github_core.models.schema_types import DATE_TIME, DATE_TIME_VALIDATION
 
 
 class RuleSuite(BaseModel):
@@ -107,10 +107,7 @@ class RuleSuite(BaseModel):
         "before_sha": {"validation": "jsonschema", "schema": {"type": "string"}},
         "after_sha": {"validation": "jsonschema", "schema": {"type": "string"}},
         # null is "we did not observe a timestamp", never "now".
-        "pushed_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
+        "pushed_at": DATE_TIME_VALIDATION,
         "bypassed_rules": {"validation": "jsonschema", "schema": {"type": "array"}},
         "configuration": {"validation": "jsonschema", "schema": {"type": "object"}},
         "tags": {"validation": "jsonschema", "schema": {"type": "object"}},
