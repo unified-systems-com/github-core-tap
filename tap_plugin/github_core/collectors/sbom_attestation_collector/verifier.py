@@ -99,8 +99,12 @@ class GhCliVerifier:
             "NO_COLOR": "1",
         }
         try:
-            done = subprocess.run(  # nosec B603 - list argv, no shell; every element is validated config or a constant
-                self.argv(subject, signer),
+            command = self.argv(subject, signer)
+            # argv[0] is a literal "gh"; the resolved binary travels as `executable`, so the program name is never
+            # a variable. No shell; every other element is validated config or a constant.
+            done = subprocess.run(  # nosec B603
+                ["gh", *command[1:]],
+                executable=command[0],
                 capture_output=True,
                 env=env,
                 timeout=self._timeout,
