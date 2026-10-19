@@ -34,6 +34,20 @@ class GithubCoreConfig(TapPluginConfig):
             ),
         )
 
+        from tap_plugin.github_core.collectors.sbom_attestation_collector.collector import SbomAttestationCollector
+
+        register_collector(
+            key="github_core_sbom_attestations",
+            scope="github_core",
+            cls=SbomAttestationCollector,
+            name="GitHub Core SBOM Attestation Collector",
+            description=(
+                "Verifies the CI-signed CycloneDX SBOM attestations of the configured image digests against the "
+                "trusted-signers list, keeps the highest revision per serial as current, and lands the "
+                "vulnerabilities of the scanned revisions as compliance findings (req-github-core-sbom-attestations)."
+            ),
+        )
+
         # Landing-page panel types — see spec-github-core-repo-landing-page-v0.md.
         from tap_plugin.github_core.panels.cross_grid_references import (
             CrossGridReferencesPanelType,
