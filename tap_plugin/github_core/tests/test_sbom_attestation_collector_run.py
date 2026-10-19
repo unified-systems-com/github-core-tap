@@ -147,7 +147,7 @@ class _Built:
             self.closed = True
 
 
-def _patch_credential(monkeypatch, token="ghp_example_token_value"):
+def _patch_credential(monkeypatch, token="stand-in-value-one"):
     _Built.verifiers, _Built.clients = [], []
     secret = SimpleNamespace(kind="github", data={"x": 1})
     monkeypatch.setattr(module, "resolve_github_secret", lambda ref: secret)
@@ -162,11 +162,11 @@ def test_without_injected_seams_the_collector_builds_them_from_the_collector_cre
     _patch_credential(monkeypatch)
     collector = _build(config_file)
     collector.run()
-    assert _Built.verifiers == ["ghp_example_token_value"]
-    assert _Built.clients and _Built.clients[0]["token"] == "ghp_example_token_value"
+    assert _Built.verifiers == ["stand-in-value-one"]
+    assert _Built.clients and _Built.clients[0]["token"] == "stand-in-value-one"
     assert len(collector.submitted) == 1
     blob = json.dumps(collector.results)
-    assert "ghp_example_token_value" not in blob and "ghp_example_token_value" not in collector.summary
+    assert "stand-in-value-one" not in blob and "stand-in-value-one" not in collector.summary
 
 
 def test_a_credential_failure_aborts_without_echoing_secret_material(config_file, monkeypatch):

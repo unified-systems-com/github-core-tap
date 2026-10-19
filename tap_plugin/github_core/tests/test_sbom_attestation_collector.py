@@ -404,16 +404,16 @@ class TestGhCliVerifier:
         v.close()
 
     def test_json_on_stdout_is_returned_and_the_token_is_in_the_child_environment_only(self, tmp_path):
-        script = self._script(tmp_path, 'test "$GH_TOKEN" = tok-secret-1 || exit 9\nprintf "[{\\"ok\\": true}]"')
-        v = GhCliVerifier(token="tok-secret-1", executable=script)
+        script = self._script(tmp_path, 'test "$GH_TOKEN" = stand-in-value-two || exit 9\nprintf "[{\\"ok\\": true}]"')
+        v = GhCliVerifier(token="stand-in-value-two", executable=script)
         assert v.verify(SUBJECT, EVIDENCE).items == [{"ok": True}]
         v.close()
 
     def test_a_failure_is_an_empty_result_with_a_scrubbed_note(self, tmp_path):
         script = self._script(tmp_path, 'echo "verification failed for $GH_TOKEN" >&2\nexit 1')
-        v = GhCliVerifier(token="tok-secret-2", executable=script)
+        v = GhCliVerifier(token="stand-in-value-three", executable=script)
         result = v.verify(SUBJECT, EVIDENCE)
-        assert result.items == [] and "tok-secret-2" not in result.note and "***" in result.note and result.note.startswith("exit 1")
+        assert result.items == [] and "stand-in-value-three" not in result.note and "***" in result.note and result.note.startswith("exit 1")
         v.close()
 
     @pytest.mark.parametrize("stdout", ["not json", '{"a": 1}'])
