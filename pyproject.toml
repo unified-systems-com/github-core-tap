@@ -29,7 +29,7 @@ dependencies = [
     "git-core-tap>=0.1.0,<0.2",
     # The collector mints compliance_core__compliance_finding for every scanner alert and
     # DETAILS_FINDING targets its type — a vocabulary + type dependency (github-core#89).
-    "compliance-core-tap>=0.5.0,<0.8",
+    "compliance-core-tap>=0.5.0,<0.9",
 ]
 
 [project.entry-points."tap.plugins"]
