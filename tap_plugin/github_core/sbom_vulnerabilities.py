@@ -112,6 +112,10 @@ def _image(batch: VulnerabilityBatch) -> str:
     return name
 
 
+def _serial(batch: VulnerabilityBatch) -> str:
+    return batch.document.serial_number or f"digest:{batch.document.content_digest}"
+
+
 def _newest_revision_per_serial(
     batches: Sequence[VulnerabilityBatch],
 ) -> tuple[list[VulnerabilityBatch], list[VulnerabilityBatch]]:
@@ -119,8 +123,7 @@ def _newest_revision_per_serial(
     newest: dict[str, VulnerabilityBatch] = {}
     ordered = sorted(batches, key=lambda b: (b.document.revision, _rank(b)))
     for batch in ordered:
-        serial = batch.document.serial_number or f"digest:{batch.document.content_digest}"
-        newest[serial] = batch
+        newest[_serial(batch)] = batch
     keep = {id(b) for b in newest.values()}
     return [b for b in ordered if id(b) in keep], [b for b in ordered if id(b) not in keep]
 
@@ -258,8 +261,12 @@ def sbom_vulnerability_grift(
             raise ValueError("documents must be VulnerabilityBatch values from parse_cyclonedx_vulnerabilities")
     if not current:
         raise ValueError("no current document: there is nothing to state or to resolve against")
-    live, older = _newest_revision_per_serial(current)
-    old_ones = [*older, *superseded]
+    # a revision passed as superseded may be newer than the one passed as current: the highest revision of
+    # each serial that `current` names wins, whichever list carried it
+    serials = {_serial(b) for b in current}
+    revisions = [*current, *(b for b in superseded if _serial(b) in serials)]
+    live, older = _newest_revision_per_serial(revisions)
+    old_ones = [*older, *(b for b in superseded if _serial(b) not in serials)]
     images = {_image(b) for b in live}
     stray = sorted({_image(b) for b in old_ones} - images)
     if stray:

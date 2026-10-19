@@ -37,9 +37,8 @@ dependencies = [
     # collectors/sbom_attestation_collector/verifier.py verifies SBOM attestation bundles in process with
     # sigstore_core.verify.verify_dsse_bundle and reads the signed predicate with sigstore_core.statement —
     # a code dependency, downward-only. sigstore_core owns the `sigstore` library; this plugin never imports it.
-    # PLACEHOLDER BOUND: the first sigstore-core-tap release carrying verify_dsse_bundle is not cut yet;
-    # George sets the real floor/ceiling when it is.
-    "sigstore-core-tap>=0.3.0,<0.4",
+    # 0.5.0 is the first release carrying verify_dsse_bundle.
+    "sigstore-core-tap>=0.5.0,<0.6",
 ]
 
 [project.entry-points."tap.plugins"]

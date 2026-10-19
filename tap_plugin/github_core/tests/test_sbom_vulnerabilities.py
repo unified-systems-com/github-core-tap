@@ -327,6 +327,14 @@ class TestTheLifecycle:
         assert (out.findings_open, out.findings_resolved) == (1, 1)
 
     @pytest.mark.spec("req-github-core-sbom-vulnerabilities-7")
+    def test_a_newer_revision_passed_as_superseded_still_beats_an_older_current_one(self):
+        older = _batch(_synthetic([("CVE-2026-0001", "a"), ("CVE-2026-0002", "b")], revision=2))
+        newer = _batch(_synthetic([("CVE-2026-0001", "a")], revision=3))
+        out = sbom_vulnerability_grift([older], [newer])
+        statuses = {k.split("#sbom#")[1]: f["status"] for k, f in _findings(out).items()}
+        assert statuses == {"CVE-2026-0001#apk/a@1": "open", "CVE-2026-0002#apk/b@1": "resolved"}
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-7")
     def test_a_finding_still_stated_is_not_resolved_by_an_older_document(self):
         older = _batch(_synthetic([("CVE-2026-0001", "a")], revision=2))
         newer = _batch(_synthetic([("CVE-2026-0001", "a")], revision=3))

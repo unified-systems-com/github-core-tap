@@ -39,8 +39,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/computing-core-tap",
-          "rev": "v0.8.0",
-          "commit": "9b85706722313fd2afae978940acbebaa1985289"
+          "rev": "v0.9.0",
+          "commit": "2e7941ac9e73ce789c50621fa0bd553530d8222e"
         }
       },
       {
@@ -49,8 +49,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/sigstore-core-tap",
-          "rev": "v0.4.0",
-          "commit": "a061370ddfad0d5f2f8c0b00b9b795a8de5ccd12"
+          "rev": "v0.5.0",
+          "commit": "0019e8c448e89f244c971ed9faa5f8112a3e2085"
         }
       },
       {
