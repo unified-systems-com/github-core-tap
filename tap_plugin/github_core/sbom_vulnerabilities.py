@@ -23,8 +23,9 @@ VEX ``analysis`` says the component is not exposed). A finding present in a ``su
 ``current`` one is ``resolved``, rewritten with the fields it had; nothing is ever deleted. The caller names
 which documents are which, because only it knows the deployed set: this module reads no grid.
 
-**Absent is not written.** A fact the SBOM does not carry (title, publication time, record URL; SSVC of an id
-with no CVE record) is left out of the node, not written as a blank.
+**Absent is not written.** A fact the SBOM does not carry (SSVC of an id with no CVE record; title, publication
+time and record URL in a revision-2 document) is left out of the node, not written as a blank. Revision 3 and
+later carry title, publication time and the record link; the record link is the CVE Record, else the advisory.
 """
 
 from __future__ import annotations
@@ -170,8 +171,14 @@ def _vulnerability_fields(record: VulnerabilityRecord) -> dict[str, Any]:
     fields: dict[str, Any] = {"vuln_id": record.vuln_id}
     if record.aliases is not None:
         fields["aliases"] = list(record.aliases)
+    if record.title is not None:
+        fields["title"] = record.title
     if record.description is not None:
         fields["description"] = record.description
+    if record.published_at is not None:
+        fields["published_at"] = record.published_at
+    if record.record_url is not None:
+        fields["record_url"] = record.record_url
     if record.cvss is not None:
         fields["cvss_score"] = record.cvss.score
         fields["cvss_version"] = record.cvss.version

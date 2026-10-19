@@ -1,8 +1,10 @@
 """SBOM vulnerabilities land as compliance nodes (req-github-core-sbom-vulnerabilities).
 
-`fixtures/sbom-tap-web-rev2-a9149a88.cdx.json` is revision 2 of the attested tap-web SBOM, byte for byte the
-predicate `gh attestation verify` returned for image `sha256:a9149a88...` on 2026-10-16 (signed by
-`sbom-vulnerability-evidence.yml`): 192 components, 94 vulnerability entries naming 27 ids. Every number
+`fixtures/sbom-tap-web-rev3-a9149a88.cdx.json` is revision 3 of the attested tap-web SBOM, byte for byte the
+predicate `gh attestation verify` returned for image `sha256:a9149a88...` (signed by
+`sbom-vulnerability-evidence.yml@e9841198`): 192 components, 94 vulnerability entries naming 27 ids, now with
+title, publication time and advisory links. `fixtures/sbom-tap-web-rev2-a9149a88.cdx.json` is the earlier
+revision 2 (none of those three), kept to show an absent fact stays absent. Every number
 asserted here can be re-read from it. Cases the real document cannot show (a resolved finding, a VEX state)
 are synthetic and labelled so.
 
@@ -33,7 +35,8 @@ SIGNER = (
     "@5736329dff506c952b5567260dd82c51adab5d74"
 )
 VERIFIED = Verification("verified", signer=SIGNER)
-FIXTURE = Path(__file__).parent / "fixtures" / "sbom-tap-web-rev2-a9149a88.cdx.json"
+FIXTURE = Path(__file__).parent / "fixtures" / "sbom-tap-web-rev3-a9149a88.cdx.json"
+REV2 = Path(__file__).parent / "fixtures" / "sbom-tap-web-rev2-a9149a88.cdx.json"
 IMAGE = "ghcr.io/unified-systems-com/tap-web"
 FINDING = "compliance_core__compliance_finding"
 VULNERABILITY = "compliance_core__compliance_vulnerability"
@@ -177,18 +180,21 @@ class TestTheRealDocument:
         }
 
     @pytest.mark.spec("req-github-core-sbom-vulnerabilities-2")
-    def test_a_vulnerability_node_is_keyed_by_its_id_alone_and_carries_what_the_sbom_observed(self, result):
+    def test_a_vulnerability_node_is_keyed_by_its_id_alone_and_carries_what_the_sbom_observed(self, result):  # noqa: E501
         node = next(n for n in _nodes(result, VULNERABILITY) if n["node"]["vuln_id"] == "CVE-2025-15367")
         assert node["entity"]["name"] == "CVE-2025-15367"
         assert node["entity"]["dimensions"] == {"compliance": "vulnerability"}
         assert node["node"] == {
             "vuln_id": "CVE-2025-15367",
             "aliases": [],
+            "title": "POP3 command injection in user-controlled commands",
             "description": (
                 "The poplib module, when passed a user-controlled command, can have\n"
                 "additional commands injected using newlines. Mitigation rejects commands\n"
                 "containing control characters."
             ),
+            "published_at": "2026-01-20T21:47:09.885Z",
+            "record_url": "https://www.cve.org/CVERecord?id=CVE-2025-15367",
             "cvss_score": 5.9,
             "cvss_version": "4.0",
             "cvss_source": "PSF",
@@ -200,20 +206,36 @@ class TestTheRealDocument:
             "ssvc_assessed_at": "2026-01-22T04:55:33.480214Z",
             "kev": False,
             "kev_catalog_version": "2026.10.16",
-            "epss_score": 0.00369,
-            "epss_percentile": 0.29122,
-            "epss_date": "2026-10-15",
+            "epss_score": 0.00377,
+            "epss_percentile": 0.30112,
+            "epss_date": "2026-10-18",
             "record_updated_at": "2026-02-26T14:44:41.341Z",
         }
 
     @pytest.mark.spec("req-github-core-sbom-vulnerabilities-2")
     def test_nothing_the_sbom_does_not_carry_is_written_as_a_blank(self, result):
         for node in _nodes(result, VULNERABILITY):
-            fields = node["node"]
-            assert all(value is not None for value in fields.values())
-            assert not set(fields) & {"title", "published_at", "record_url"}
-        ghsa = next(n for n in _nodes(result, VULNERABILITY) if n["node"]["vuln_id"].startswith("GHSA-"))
-        assert not {k for k in ghsa["node"] if k.startswith(("ssvc_", "epss_"))}
+            assert all(value is not None for value in node["node"].values())
+        ghsa = [n for n in _nodes(result, VULNERABILITY) if n["node"]["vuln_id"].startswith("GHSA-")]
+        assert len(ghsa) == 5
+        for node in ghsa:
+            assert not {k for k in node["node"] if k.startswith(("ssvc_", "epss_"))}
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-2")
+    def test_every_vulnerability_has_a_title_a_publication_time_and_a_record_link(self, result):
+        nodes = _nodes(result, VULNERABILITY)
+        assert len(nodes) == 27
+        for field in ("title", "published_at", "record_url", "description", "record_updated_at"):
+            assert sum(field in n["node"] for n in nodes) == 27, field
+        ghsa = next(n for n in nodes if n["node"]["vuln_id"] == "GHSA-fmf4-pr35-46c2")
+        assert ghsa["node"]["record_url"] == "https://github.com/advisories/GHSA-fmf4-pr35-46c2"
+        assert ghsa["node"]["published_at"] == "2026-09-22T18:33:29Z"
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-2")
+    def test_revision_two_has_none_of_the_three_so_the_node_has_none(self):
+        out = sbom_vulnerability_grift([parse_cyclonedx_vulnerabilities(REV2.read_bytes(), verification=VERIFIED)])
+        for node in _nodes(out, VULNERABILITY):
+            assert not set(node["node"]) & {"title", "published_at", "record_url"}
 
     @pytest.mark.spec("req-github-core-sbom-vulnerabilities-3")
     def test_a_finding_is_keyed_by_source_and_an_sbom_scoped_key(self, result):
@@ -428,12 +450,12 @@ class TestThroughTheImporter:
         )
         assert finding.status == "open"
         vulnerability = get_model_class(VULNERABILITY).objects.get(vuln_id="CVE-2025-15367")
-        assert (vulnerability.cvss_score, vulnerability.kev, vulnerability.title, vulnerability.published_at) == (
+        assert (vulnerability.cvss_score, vulnerability.kev, vulnerability.title) == (
             5.9,
             False,
-            None,
-            None,
+            "POP3 command injection in user-controlled commands",
         )
+        assert vulnerability.record_url == "https://www.cve.org/CVERecord?id=CVE-2025-15367"
 
     @pytest.mark.spec("req-github-core-sbom-vulnerabilities-9")
     def test_the_page_traversals_find_the_findings(self, raw, result):
