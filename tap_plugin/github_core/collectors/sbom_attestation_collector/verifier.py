@@ -59,7 +59,7 @@ class GhCliVerifier:
             raise VerifierUnavailable("the gh CLI is not on PATH, so no attestation can be verified")
         if not token:
             raise VerifierUnavailable("no GitHub token to give gh")
-        self._gh = found
+        self._gh = os.path.abspath(found)
         self._token = token
         self._timeout = timeout
         self._home = tempfile.TemporaryDirectory(prefix="gh-sbom-verify-")
@@ -101,8 +101,9 @@ class GhCliVerifier:
         try:
             command = self.argv(subject, signer)
             # argv[0] is a literal "gh"; the resolved binary travels as `executable`, so the program name is never
-            # a variable. No shell; every other element is validated config or a constant.
-            done = subprocess.run(  # nosec B603
+            # a variable. No shell; every other element is validated config or a constant. B607 (partial path) does not
+            # apply: `executable` is the absolute path __init__ resolved, the literal is only argv[0] as the program sees it.
+            done = subprocess.run(  # nosec B603 B607
                 ["gh", *command[1:]],
                 executable=command[0],
                 capture_output=True,
