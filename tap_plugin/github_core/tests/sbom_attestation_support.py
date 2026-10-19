@@ -134,3 +134,13 @@ def cdx(version: int, vulns: list[tuple[str, str]] | None, serial: str = "urn:uu
             for vid, comp in vulns
         ]
     return doc
+
+
+def grift_content(document: dict[str, Any]) -> dict[str, Any]:
+    """A GRIFT document without the per-run identity of its batch (time-ordered ids, collection timestamp)."""
+    out = json.loads(json.dumps(document))
+    out.pop("metadata", None)
+    for batch in out.get("batches", []):
+        batch.pop("batch_entity", None)
+        (batch.get("batch_node", {}).get("description_json") or {}).pop("collected_at", None)
+    return out

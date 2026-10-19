@@ -1,4 +1,4 @@
-"""The collector class around the pipeline (req-github-core-sbom-attestations-4, -8, -10, -11).
+"""The collector class around the pipeline (req-github-core-sbom-attestations-4, -8, -10, -11, -12).
 
 No database and no network: `submit_grift` is replaced by a recorder, the verifier and the lister are injected
 (or, for the credential path, replaced where the collector builds them), and the config is a temporary file.
@@ -43,11 +43,21 @@ def config_file(tmp_path):
                 "_description": "test",
                 "format": "github-core-sbom-attestations/1",
                 "trusted_signers_path": str(TRUST_LIST),
+                "verifier": "gh",
                 "subjects": [{"_description": "tap-web", "image": IMAGE, "digest": DIGEST}],
             }
         )
     )
     return path
+
+
+@pytest.fixture
+def config_file_default_verifier(config_file):
+    """The same config without a `verifier` key: the default, sigstore_core (req-github-core-sbom-attestations-12)."""
+    document = json.loads(config_file.read_text())
+    del document["verifier"]
+    config_file.write_text(json.dumps(document))
+    return config_file
 
 
 def _build(config_file, verifier=None, lister=None):
@@ -212,6 +222,52 @@ def test_the_verifier_the_collector_built_is_closed_even_when_the_run_is_refused
     assert built[0].closed
 
 
+def _patch_sigstore_core_path(monkeypatch):
+    """Replace what `run` builds on the default path; record what each piece was given."""
+    built: dict[str, Any] = {}
+    _patch_credential(monkeypatch)
+
+    class Fetcher:
+        def __init__(self, client):
+            built["fetcher_client"] = client
+
+    class Verifier(RecordedVerifier):
+        def __init__(self, fetcher):
+            super().__init__({DIGEST: recorded_results()})
+            built["verifier_fetcher"] = fetcher
+
+    def no_gh(*, token):
+        raise AssertionError("the default path must not build the gh verifier")
+
+    monkeypatch.setattr(module, "GithubAttestationFetcher", Fetcher)
+    monkeypatch.setattr(module, "SigstoreCoreVerifier", Verifier)
+    monkeypatch.setattr(module, "GhCliVerifier", no_gh)
+    return built
+
+
+def test_the_default_verifier_is_sigstore_core_built_from_the_collector_credential(config_file_default_verifier, monkeypatch):
+    built = _patch_sigstore_core_path(monkeypatch)
+    collector = _build(config_file_default_verifier)
+    collector.run()
+    assert len(collector.submitted) == 1
+    assert built["verifier_fetcher"] is not None and built["fetcher_client"] is not None
+    assert _Built.clients[0]["token"] == "stand-in-value-one"  # the one client the fetcher and the lister share
+    assert "stand-in-value-one" not in json.dumps(collector.results)
+
+
+def test_sigstore_core_not_installed_aborts_with_verifier_unavailable_as_the_reason(config_file_default_verifier, monkeypatch):
+    _patch_sigstore_core_path(monkeypatch)
+
+    def missing(fetcher):
+        raise VerifierUnavailable("sigstore_core with DSSE verification is not installed")
+
+    monkeypatch.setattr(module, "SigstoreCoreVerifier", missing)
+    collector = _build(config_file_default_verifier)
+    with pytest.raises(SbomAttestationError, match="not installed"):
+        collector.run()
+    assert _codes(collector, "error") == ["VERIFIER_UNAVAILABLE"] and collector.submitted == []
+
+
 class TestSelfTest:
     def _run(self, config_file, monkeypatch, gh="/usr/bin/gh", verifier=None):
         class Collector(SbomAttestationCollector):
@@ -232,6 +288,18 @@ class TestSelfTest:
     def test_a_missing_gh_is_misconfigured_unless_a_verifier_is_injected(self, config_file, monkeypatch):
         assert self._run(config_file, monkeypatch, gh=None).status.value == "misconfigured"
         assert self._run(config_file, monkeypatch, gh=None, verifier=RecordedVerifier({})).status.value == "ready"
+
+    def test_the_default_verifier_needs_sigstore_core_not_gh(self, config_file_default_verifier, monkeypatch):
+        monkeypatch.setattr(module, "load_sigstore_core", lambda: None)
+        result = self._run(config_file_default_verifier, monkeypatch, gh=None)  # no gh on PATH, and none needed
+        assert result.status.value == "ready"
+
+    def test_a_missing_sigstore_core_is_misconfigured_on_the_default_path(self, config_file_default_verifier, monkeypatch):
+        def missing():
+            raise VerifierUnavailable("sigstore_core with DSSE verification is not installed")
+
+        monkeypatch.setattr(module, "load_sigstore_core", missing)
+        assert self._run(config_file_default_verifier, monkeypatch).status.value == "misconfigured"
 
     def test_an_absent_config_is_unconfigured(self, tmp_path, monkeypatch):
         assert self._run(tmp_path / "absent.json", monkeypatch).status.value == "unconfigured"

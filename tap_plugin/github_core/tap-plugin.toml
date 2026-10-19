@@ -18,6 +18,7 @@ depends_on = [
     { slug = "identity_core", note = "ENABLED_ON_REPOSITORY sources the identity_core__oidc_issuer type; the collector mints the issuer node via identity_core.issuer (the OIDC vocabulary lives there, not here)." },
     { slug = "compliance_core", note = "The neutral finding substrate: the collector mints compliance_core__compliance_finding for every scanner alert (code scanning and Dependabot today; secret scanning rides the same shape) and places it with CARRIES_COMPLIANCE_FINDING; the source-specific detail node (code_scanning_alert, dependabot_alert) hangs off it via DETAILS_FINDING. Vocabulary + type dependency, downward-only." },
     { slug = "computing_core", note = "The SBOM reader: sbom_vulnerabilities.py hands the typed result of tap_plugin.computing_core.sbom.parse_cyclonedx_vulnerabilities (VulnerabilityBatch and its records, Verification) to the compliance_core vocabulary above and names packages and libraries by their natural key without creating them. Code + type dependency, downward-only; computing_core imports nothing from this plugin or from compliance_core." },
+    { slug = "sigstore_core", note = "The SBOM attestation collector verifies DSSE-enveloped attestation bundles in process through tap_plugin.sigstore_core.verify.verify_dsse_bundle and reads the signed predicate bytes through tap_plugin.sigstore_core.statement.extract_predicate (the sigstore library stays inside sigstore_core). Code dependency, downward-only; sigstore_core imports nothing from this plugin." },
 ]
 
 [models]
@@ -123,4 +124,4 @@ workflow-page = "grift/workflow-page.grift.json"
 [[boot.records]]
 name = "ci"
 description = "RESERVED NAME (req-boot-bootstrap-ci-record): the stack this plugin's own tests run in — depends_on closure + self, offline, credential-free. The consumer flips self to editable."
-sha256 = "ec05e1c85ef5c93e822cfc4d4fe1a02b34fe74221211830721e5d838420f846a"
+sha256 = "cc98886a30a9b656615984b9e63e4c0e3ef2c7d208e0a4a19a99a7faa1d50f4f"

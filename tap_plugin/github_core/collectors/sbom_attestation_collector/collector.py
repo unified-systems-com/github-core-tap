@@ -29,7 +29,13 @@ from .config import CONFIG_FILENAME, SbomAttestationConfig, TrustedSigner, load_
 from .errors import SbomAttestationError
 from .lister import AttestationLister, GithubAttestationLister
 from .pipeline import PipelineResult, run_pipeline
-from .verifier import AttestationVerifier, GhCliVerifier
+from .verifier import (
+    AttestationVerifier,
+    GhCliVerifier,
+    GithubAttestationFetcher,
+    SigstoreCoreVerifier,
+    load_sigstore_core,
+)
 
 # Log site tokens for the recorder. Minted via scripts/log-site-id.
 _SITE_RUN_STARTED = "e6af"
@@ -103,7 +109,7 @@ class SbomAttestationCollector(CollectorBase):
             )
             return stop("No usable collector credential.")
         checks.append(check_pass("GITHUB_SECRET_VALID", "Collector credential resolves.", docs=_DOCS))
-        if cls.verifier is None:
+        if cls.verifier is None and config.verifier == "gh":
             import shutil
 
             if shutil.which("gh") is None:
@@ -117,6 +123,15 @@ class SbomAttestationCollector(CollectorBase):
                 )
                 return stop("The gh CLI that verifies attestations is missing.")
             checks.append(check_pass("GH_CLI_PRESENT", "The gh CLI is on PATH.", docs=_DOCS))
+        elif cls.verifier is None:
+            try:
+                load_sigstore_core()
+            except SbomAttestationError as exc:
+                checks.append(
+                    check_fail("SIGSTORE_CORE_PRESENT", str(exc), readiness_status=CollectorReadinessStatus.MISCONFIGURED, docs=_DOCS)
+                )
+                return stop("The sigstore_core verifier is unavailable.")
+            checks.append(check_pass("SIGSTORE_CORE_PRESENT", "sigstore_core DSSE verification is installed.", docs=_DOCS))
         return stop("SBOM attestation collector is ready.")
 
     def _abort(self, site: str, code: str, message: str) -> None:
@@ -143,14 +158,18 @@ class SbomAttestationCollector(CollectorBase):
             except Exception as exc:  # noqa: BLE001 - any credential failure stops the run, loudly
                 self._abort(_SITE_ABORT_SECRET, "SECRET_UNUSABLE", f"GitHub credential unusable: {type(exc).__name__}: {exc}")
                 return
+            client = GithubClient(token=token, api_base_url=api_base_url(data))
             if verifier is None:
                 try:
-                    owned_verifier = verifier = GhCliVerifier(token=token)
+                    if config.verifier == "gh":
+                        owned_verifier = verifier = GhCliVerifier(token=token)
+                    else:
+                        verifier = SigstoreCoreVerifier(GithubAttestationFetcher(client))
                 except SbomAttestationError as exc:
                     self._abort(_SITE_ABORT_VERIFY, "VERIFIER_UNAVAILABLE", str(exc))
                     return
             if lister is None:
-                lister = GithubAttestationLister(GithubClient(token=token, api_base_url=api_base_url(data)))
+                lister = GithubAttestationLister(client)
         try:
             result = run_pipeline(config, signers, verifier, lister)
         except SbomAttestationError as exc:

@@ -18,6 +18,8 @@ import jsonschema
 from .errors import ConfigError
 
 CONFIG_FORMAT: Final[str] = "github-core-sbom-attestations/1"
+#: The verifier choices the config may name (verifier.py): in-process sigstore_core, or the gh CLI.
+VERIFIERS: Final[tuple[str, ...]] = ("sigstore_core", "gh")
 TRUST_LIST_FORMAT: Final[str] = "tap-sbom-trusted-signers/1"
 SCHEMA_PATH: Final[Path] = Path(__file__).with_name("sbom_attestation_config.schema.json")
 #: The collector config file, beside the credential under TAP_SECRETS_ROOT/<scope>/.
@@ -66,6 +68,7 @@ class SbomAttestationConfig:
     trusted_signers_path: str
     subjects: tuple[Subject, ...]
     on_unverified_attestation: str = "warn"
+    verifier: str = "sigstore_core"
     batch_name: str = "SBOM vulnerabilities (verified attestations)"
 
 
@@ -90,6 +93,7 @@ def parse_config(document: Any) -> SbomAttestationConfig:
         trusted_signers_path=document["trusted_signers_path"],
         subjects=subjects,
         on_unverified_attestation=document.get("on_unverified_attestation", "warn"),
+        verifier=document.get("verifier", "sigstore_core"),
         batch_name=document.get("batch_name", SbomAttestationConfig.batch_name),
     )
 
