@@ -488,7 +488,7 @@ class TestThroughTheImporter:
         assert _import(result.document).success
         entities, edges = Entity.objects.count(), Edge.objects.count()
         assert _import(result.document).success
-        assert (Entity.objects.count() - 1, Edge.objects.count()) == (entities, edges)  # +1: the second batch entity
+        assert (Entity.objects.count(), Edge.objects.count()) == (entities, edges)
 
     @pytest.mark.spec("req-github-core-sbom-vulnerabilities-9")
     def test_a_resolution_updates_the_finding_it_does_not_add_one(self, raw):
