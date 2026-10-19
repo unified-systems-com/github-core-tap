@@ -88,7 +88,7 @@ def make_item(
     certificate = {
         "subjectAlternativeName": signer.identity,
         "issuer": OIDC_ISSUER,
-        "buildSignerDigest": signer.signer_digest or hashlib.sha1(signer.id.encode()).hexdigest(),  # noqa: S324
+        "buildSignerDigest": signer.signer_digest or hashlib.sha256(signer.id.encode()).hexdigest()[:40],
         **(cert or {}),
     }
     return {

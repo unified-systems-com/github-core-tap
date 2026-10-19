@@ -40,7 +40,7 @@ from .verifier import (
 # Log site tokens for the recorder. Minted via scripts/log-site-id.
 _SITE_RUN_STARTED = "e6af"
 _SITE_ABORT_CONFIG = "e328"
-_SITE_ABORT_SECRET = "f748"
+_SITE_ABORT_CREDENTIAL = "f748"
 _SITE_ABORT_VERIFY = "e756"
 _SITE_SUBJECT = "7d4e"
 _SITE_UNVERIFIED = "2680"
@@ -156,7 +156,7 @@ class SbomAttestationCollector(CollectorBase):
                 auth = GithubAuth(kind=secret.kind, data=data, api_base_url=api_base_url(data))
                 token = auth.token()
             except Exception as exc:  # noqa: BLE001 - any credential failure stops the run, loudly
-                self._abort(_SITE_ABORT_SECRET, "SECRET_UNUSABLE", f"GitHub credential unusable: {type(exc).__name__}: {exc}")
+                self._abort(_SITE_ABORT_CREDENTIAL, "SECRET_UNUSABLE", f"GitHub credential unusable: {type(exc).__name__}: {exc}")
                 return
             client = GithubClient(token=token, api_base_url=api_base_url(data))
             if verifier is None:
