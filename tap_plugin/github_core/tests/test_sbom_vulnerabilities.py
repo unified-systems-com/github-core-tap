@@ -305,6 +305,54 @@ class TestTheRealDocument:
         assert all(isinstance(v, str) for v in fixed["edge"]["properties"]["fixed_versions"])
 
 
+class TestFixState:
+    """req-github-core-sbom-vulnerabilities-10: "will not be fixed" and "no fix yet" are different rows."""
+
+    @staticmethod
+    def _one(state: str | None, versions: str | None = None):
+        props = []
+        if state is not None:
+            props.append({"name": "tap:fix:state", "value": state})
+        if versions is not None:
+            props.append({"name": "tap:fix:versions", "value": versions})
+        extra = {"properties": props} if props else {}
+        batch = _batch(_synthetic([("CVE-2026-1001", "widget")], extra=extra))
+        built = sbom_vulnerability_grift([batch])
+        (edge,) = _edges(built, CONCERNS)
+        (finding,) = _findings(built).values()
+        return edge["edge"]["properties"], finding
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_the_real_document_carries_the_state_it_states_including_unknown(self, result):
+        states = Counter(e["edge"]["properties"].get("fix_state") for e in _edges(result, CONCERNS))
+        assert states == {"fixed": 67, "unknown": 27}
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_wont_fix_is_written_and_the_finding_says_the_fix_will_not_be_made(self):
+        props, finding = self._one("wont-fix")
+        assert props == {"fixed_versions": [], "fix_state": "wont-fix"}
+        assert "will not be made" in finding["description"] and "no fix is available" not in finding["description"]
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_not_fixed_is_written_and_the_finding_says_none_exists_yet(self):
+        props, finding = self._one("not-fixed")
+        assert props == {"fixed_versions": [], "fix_state": "not-fixed"}
+        assert "no fix exists yet" in finding["description"] and "will not be made" not in finding["description"]
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_fixed_keeps_its_versions_and_unknown_is_kept_as_a_stated_answer(self):
+        props, finding = self._one("fixed", "1.2.3")
+        assert props == {"fixed_versions": ["1.2.3"], "fix_state": "fixed"}
+        assert "fixed in 1.2.3" in finding["description"]
+        props, finding = self._one("unknown")
+        assert props == {"fix_state": "unknown"} and "no fix is known" in finding["description"]
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_a_document_that_states_no_fix_state_writes_none(self):
+        props, finding = self._one(None)
+        assert "fix_state" not in props and "no fix is known" in finding["description"]
+
+
 class TestTheLifecycle:
     """req-github-core-sbom-vulnerabilities-7. Synthetic: the real document is one revision."""
 

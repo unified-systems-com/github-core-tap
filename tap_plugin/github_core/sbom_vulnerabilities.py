@@ -152,7 +152,12 @@ def _finding_fields(finding: _Finding, record: VulnerabilityRecord | None) -> di
     match = finding.match
     component = match.component
     description = (record.description if record else None) or ""
-    if match.fixed_versions:
+    if match.fix_state == "wont-fix":
+        # The deciding party has declined to fix it: different from "none yet", and remediation differs (replace or accept).
+        fix = "the fix will not be made (the source marks it won't-fix)"
+    elif match.fix_state == "not-fixed":
+        fix = "no fix exists yet"
+    elif match.fixed_versions:
         fix = "fixed in " + ", ".join(match.fixed_versions)
     elif match.fixed_versions == ():
         fix = "no fix is available"
@@ -309,6 +314,8 @@ def sbom_vulnerability_grift(
         concerns: dict[str, Any] = {}
         if match.fixed_versions is not None:
             concerns["fixed_versions"] = list(match.fixed_versions)
+        if match.fix_state is not None:
+            concerns["fix_state"] = match.fix_state  # as the SBOM states it, "unknown" included; absent when it states none
         edges.append(
             _edge(
                 CONCERNS,
