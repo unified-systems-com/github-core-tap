@@ -49,8 +49,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/sigstore-core-tap",
-          "rev": "v0.5.0",
-          "commit": "0019e8c448e89f244c971ed9faa5f8112a3e2085"
+          "rev": "v0.5.1",
+          "commit": "b368fa2d4b53a7b4bc8247d9598beb059d31287e"
         }
       },
       {
