@@ -22,13 +22,22 @@ from pathlib import Path
 
 import pytest
 from tap_plugin.computing_core.sbom import (
+    Cvss,
+    Epss,
+    Kev,
+    Ssvc,
     Verification,
+    VulnerabilityRecord,
     VulnerabilityBatch,
     parse_cyclonedx,
     parse_cyclonedx_vulnerabilities,
 )
 from tap_plugin.github_core.collectors.github_collector import identity
-from tap_plugin.github_core.sbom_vulnerabilities import SbomVulnerabilityResult, sbom_vulnerability_grift
+from tap_plugin.github_core.sbom_vulnerabilities import (
+    SbomVulnerabilityResult,
+    _vulnerability_fields,
+    sbom_vulnerability_grift,
+)
 
 SIGNER = (
     "https://github.com/unified-systems-com/tap/.github/workflows/sbom-vulnerability-evidence.yml"
@@ -45,6 +54,14 @@ CONCERNS = "CONCERNS_COMPLIANCE_VULNERABILITY__compliance_core"
 CARRIES = "CARRIES_COMPLIANCE_FINDING__compliance_core"
 DETECTS = "DETECTS_COMPLIANCE_FINDING__compliance_core"
 HOST = str(uuid.UUID("01a13c38-4f5e-735c-9cf2-1f159f4282b6"))
+
+#: GROUP NULLS (github-core-tap#238): the members of each group, written together or not at all.
+_GROUPS = {
+    "cvss": ("cvss_score", "cvss_version", "cvss_source", "cvss_vector"),
+    "ssvc": ("ssvc_exploitation", "ssvc_automatable", "ssvc_technical_impact", "ssvc_assessed_at"),
+    "kev": ("kev", "kev_added", "kev_catalog_version", "kev_due_date", "kev_required_action", "kev_ransomware_use"),
+    "epss": ("epss_score", "epss_percentile", "epss_date"),
+}
 
 
 @pytest.fixture(scope="module")
@@ -205,17 +222,27 @@ class TestTheRealDocument:
             "ssvc_technical_impact": "total",
             "ssvc_assessed_at": "2026-01-22T04:55:33.480214Z",
             "kev": False,
+            "kev_added": None,
             "kev_catalog_version": "2026.10.16",
+            "kev_due_date": None,
+            "kev_required_action": None,
+            "kev_ransomware_use": None,
             "epss_score": 0.00377,
             "epss_percentile": 0.30112,
             "epss_date": "2026-10-18",
             "record_updated_at": "2026-02-26T14:44:41.341Z",
         }
 
-    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-2")
-    def test_nothing_the_sbom_does_not_carry_is_written_as_a_blank(self, result):
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_group_nulls_a_none_is_only_ever_a_member_of_an_observed_group(self, result):
+        # GROUP NULLS (github-core-tap#238). Outside a group, a fact the SBOM does not carry is absent, never
+        # None. Inside one, the group is written whole: either every member is a key or none is.
+        members = {m for group in _GROUPS.values() for m in group}
         for node in _nodes(result, VULNERABILITY):
-            assert all(value is not None for value in node["node"].values())
+            body = node["node"]
+            assert {k for k, v in body.items() if v is None} <= members
+            for group in _GROUPS.values():
+                assert len(set(group) & set(body)) in (0, len(group))
         ghsa = [n for n in _nodes(result, VULNERABILITY) if n["node"]["vuln_id"].startswith("GHSA-")]
         assert len(ghsa) == 5
         for node in ghsa:
@@ -527,3 +554,69 @@ class TestThroughTheImporter:
             declared = set(get_model_class(entity_type).FIELD_CRUD_SCHEMA)
             for node in _nodes(result, entity_type):
                 assert set(node["node"]) <= declared, (entity_type, set(node["node"]) - declared)
+
+
+def _record(**blocks: object) -> VulnerabilityRecord:
+    return VulnerabilityRecord(
+        vuln_id="CVE-2000-0001",
+        aliases=None,
+        description=None,
+        title=None,
+        published_at=None,
+        advisories=(),
+        cvss=blocks.get("cvss"),  # type: ignore[arg-type]
+        cwes=None,
+        ssvc=blocks.get("ssvc"),  # type: ignore[arg-type]
+        kev=blocks.get("kev"),  # type: ignore[arg-type]
+        epss=blocks.get("epss"),  # type: ignore[arg-type]
+        record_updated_at=None,
+        source_url=None,
+    )
+
+
+class TestGroupNulls:
+    """GROUP NULLS (github-core-tap#238, req-github-core-sbom-vulnerabilities-10)."""
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_a_delisted_cve_clears_the_kev_details_instead_of_leaving_them_absent(self):
+        # `kev = False` with no dates is the delisting case: the importer leaves an absent field alone, so the
+        # dates must be sent as None or an earlier listing's dates would survive beside `kev = False`.
+        fields = _vulnerability_fields(_record(kev=Kev(listed=False, catalog_version="2026.10.16")))
+        assert fields["kev"] is False
+        assert fields["kev_catalog_version"] == "2026.10.16"
+        for member in ("kev_added", "kev_due_date", "kev_required_action", "kev_ransomware_use"):
+            assert member in fields and fields[member] is None
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_a_listed_cve_keeps_its_values_and_nulls_only_what_the_catalog_lacks(self):
+        fields = _vulnerability_fields(
+            _record(kev=Kev(listed=True, catalog_version="v", date_added="2026-01-02", due_date="2026-02-03"))
+        )
+        assert (fields["kev"], fields["kev_added"], fields["kev_due_date"]) == (True, "2026-01-02", "2026-02-03")
+        assert fields["kev_required_action"] is None and fields["kev_ransomware_use"] is None
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_an_unread_catalog_writes_no_kev_member_at_all(self):
+        # `listed is None` means the catalog was not read: that is "not observed", so nothing is sent and an
+        # earlier answer stands.
+        assert not set(_vulnerability_fields(_record(kev=Kev(listed=None)))) & set(_GROUPS["kev"])
+        assert not set(_vulnerability_fields(_record())) & set(_GROUPS["kev"])
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_the_other_groups_are_written_whole_when_their_block_is_present(self):
+        fields = _vulnerability_fields(
+            _record(
+                cvss=Cvss(score=5.0, vector=None, version="3.1", source="x"),
+                ssvc=Ssvc(exploitation="none", automatable=None, technical_impact=None, assessed_at=None, version=None),
+                epss=Epss(score=0.5, percentile=None, date=None),
+            )
+        )
+        assert fields["cvss_vector"] is None
+        assert fields["ssvc_exploitation"] == "none" and fields["ssvc_automatable"] is None
+        assert fields["epss_score"] == 0.5 and fields["epss_percentile"] is None and fields["epss_date"] is None
+        for group in ("cvss", "ssvc", "epss"):
+            assert set(_GROUPS[group]) <= set(fields)
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-10")
+    def test_a_group_with_no_block_writes_none_of_its_members(self):
+        assert not set(_vulnerability_fields(_record())) & {m for g in _GROUPS.values() for m in g}

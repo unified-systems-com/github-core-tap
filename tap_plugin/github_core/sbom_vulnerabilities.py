@@ -170,7 +170,26 @@ def _finding_fields(finding: _Finding, record: VulnerabilityRecord | None) -> di
 
 
 def _vulnerability_fields(record: VulnerabilityRecord) -> dict[str, Any]:
-    """The compliance_vulnerability fields the record observed; a fact it does not carry is absent, not blank."""
+    """The compliance_vulnerability fields the record observed (``req-github-core-sbom-vulnerabilities-2``).
+
+    A fact the record does not carry is absent from the node, not blank. There is one deliberate exception,
+    **GROUP NULLS** (``req-github-core-sbom-vulnerabilities-10``, ruled 2026-10-29, github-core-tap#238):
+
+    CVSS, SSVC, KEV and EPSS are each a *group*: a block of facts that arrive together under one anchor (the
+    ``cvss`` block, the ``ssvc`` block, a KEV answer with ``listed`` set, the ``epss`` block). When the anchor
+    is present, EVERY member of its group is written, and a member the record gives no value for is written
+    as an explicit ``None``. When the anchor is absent, no member of the group is written.
+
+    Why: an import of a node that already exists leaves an absent field alone (unified-systems-com/tap#1128).
+    So a CVE once listed in CISA's KEV catalog and later delisted, sent as ``kev = False`` with its date, due
+    date and required action merely absent, would keep the old dates beside ``kev = False``. ``None`` is how
+    this node says "the answer is no, so there is no date". Every field written here is nullable on the model.
+
+    If this ever becomes a problem (a node showing null where a value was expected, or a test about "no
+    None values" failing), search for ``GROUP NULLS`` and ``github-core-tap#238``: the spec row, the issue
+    thread and the pull request that introduced it all carry that phrase, and so does the test that pins it.
+    To go back to "absent, not null", drop the ``None`` members below and accept stale delisting details.
+    """
     fields: dict[str, Any] = {"vuln_id": record.vuln_id}
     if record.aliases is not None:
         fields["aliases"] = list(record.aliases)
@@ -183,39 +202,33 @@ def _vulnerability_fields(record: VulnerabilityRecord) -> dict[str, Any]:
     if record.record_url is not None:
         fields["record_url"] = record.record_url
     if record.cvss is not None:
+        # GROUP NULLS (github-core-tap#238): the vector is a member of the CVSS group.
         fields["cvss_score"] = record.cvss.score
         fields["cvss_version"] = record.cvss.version
         fields["cvss_source"] = record.cvss.source
-        if record.cvss.vector is not None:
-            fields["cvss_vector"] = record.cvss.vector
+        fields["cvss_vector"] = record.cvss.vector
     if record.cwes is not None:
         fields["cwes"] = list(record.cwes)
     if record.ssvc is not None:
-        for name, value in (
-            ("ssvc_exploitation", record.ssvc.exploitation),
-            ("ssvc_automatable", record.ssvc.automatable),
-            ("ssvc_technical_impact", record.ssvc.technical_impact),
-            ("ssvc_assessed_at", record.ssvc.assessed_at),
-        ):
-            if value is not None:
-                fields[name] = value
+        # GROUP NULLS (github-core-tap#238): all four SSVC members, None where the block gives none.
+        fields["ssvc_exploitation"] = record.ssvc.exploitation
+        fields["ssvc_automatable"] = record.ssvc.automatable
+        fields["ssvc_technical_impact"] = record.ssvc.technical_impact
+        fields["ssvc_assessed_at"] = record.ssvc.assessed_at
     if record.kev is not None and record.kev.listed is not None:
+        # GROUP NULLS (github-core-tap#238): a delisted CVE is `kev = False` with its dates cleared, not left
+        # at whatever an earlier answer wrote. An unread catalog (`listed is None`) writes no KEV member at all.
         fields["kev"] = record.kev.listed
-        for name, value in (
-            ("kev_added", record.kev.date_added),
-            ("kev_catalog_version", record.kev.catalog_version),
-            ("kev_due_date", record.kev.due_date),
-            ("kev_required_action", record.kev.required_action),
-            ("kev_ransomware_use", record.kev.ransomware_use),
-        ):
-            if value is not None:
-                fields[name] = value
+        fields["kev_added"] = record.kev.date_added
+        fields["kev_catalog_version"] = record.kev.catalog_version
+        fields["kev_due_date"] = record.kev.due_date
+        fields["kev_required_action"] = record.kev.required_action
+        fields["kev_ransomware_use"] = record.kev.ransomware_use
     if record.epss is not None:
+        # GROUP NULLS (github-core-tap#238): score, percentile and date are written together.
         fields["epss_score"] = record.epss.score
-        if record.epss.percentile is not None:
-            fields["epss_percentile"] = record.epss.percentile
-        if record.epss.date is not None:
-            fields["epss_date"] = record.epss.date
+        fields["epss_percentile"] = record.epss.percentile
+        fields["epss_date"] = record.epss.date
     if record.record_updated_at is not None:
         fields["record_updated_at"] = record.record_updated_at
     return fields
