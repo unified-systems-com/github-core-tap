@@ -19,9 +19,9 @@ The ruling of 2026-09-09 (operator, session double-tap-git-serious; github-core#
 
 ## Identity
 
-Natural key: **`<owner/repo>#<number>`** — the repository plus GitHub's alert number. Entity id is `uuid5(ns, "github_core__code_scanning_alert:<owner/repo>#<number>")` under `GITHUB_CORE_NAMESPACE` (`collectors/github_collector/identity.py`).
+Natural key: **`(repository_github_id, number)`** — the repository's immutable GitHub id plus GitHub's alert number, never `full_name` (github-core#209: a renamed repository would otherwise mint a second, duplicate alert row on the next collection). Entity id resolution reads these two field values directly (`tap_grid.models.find_existing`); the batch-local `Ref` string minted at collection time (`collectors/github_collector/identity.py`) still composes `full_name` for readability but plays no part in cross-run identity.
 
-The number is GitHub's own identity for an alert within a repository: it is in the URL, it is what a dismissal names, and it is stable across the alert's whole lifecycle (an alert that closes as `fixed` and reappears is a new number). It is NOT the rule: the same rule fires at many locations and each is its own alert. The paired `compliance_finding` is found again by the key **compliance_core** declares on its own model — `source` = `github_core`, `source_key` = **`<owner/repo>#code_scanning#<number>`** — which this collector writes and core assigns an id against (Issue# 8 - tap-plugin-compliance-core). The source segment is still what keeps a Dependabot or secret-scanning finding on the same repository from colliding with it.
+The number is GitHub's own identity for an alert within a repository: it is in the URL, it is what a dismissal names, and it is stable across the alert's whole lifecycle (an alert that closes as `fixed` and reappears is a new number). It is NOT the rule: the same rule fires at many locations and each is its own alert. Unlike run/job/artifact/cache/analysis ids, GitHub's code scanning API never gives an alert a platform-global id — only repo+number — so the repository's own id has to stand in for the missing half. The paired `compliance_finding` is found again by the key **compliance_core** declares on its own model — `source` = `github_core`, `source_key` = **`<owner/repo>#code_scanning#<number>`** — which this collector writes and core assigns an id against (Issue# 8 - tap-plugin-compliance-core). The source segment is still what keeps a Dependabot or secret-scanning finding on the same repository from colliding with it; that key is compliance_core's, not this model's, and stays `full_name`-keyed until compliance_core has its own reason to change.
 
 ## Boundaries
 
@@ -70,8 +70,9 @@ A repository's alert set is only as complete as the walk: a `Link` chain that st
 
 ## Fields
 
-- `full_name` — `owner/repo`; half the natural key.
-- `number` — GitHub's alert number within the repository; the other half. Stable for the alert's whole life.
+- `full_name` — `owner/repo` the alert was raised in; a plain, refreshed-on-observation attribute (github-core#209) — see `repository_github_id` for the identity half.
+- `repository_github_id` — the repository's immutable GitHub id; half the natural key (github-core#209). Optional at create time, like `github_repository.github_id`: a row observed with no stable id is a legitimate degraded state, not an error.
+- `number` — GitHub's alert number within the repository; the other half of the natural key. Stable for the alert's whole life.
 - `state` — GitHub's lifecycle: `open`, `dismissed`, `fixed`; `""` when the payload carried none. The paired finding's `status` is derived from it (`open` → `open`, anything else → `resolved`); this is the field that keeps the distinction.
 - `created_at`, `updated_at` — GitHub's timestamps for the alert record.
 - `fixed_at` — when GitHub stopped seeing the result in a new analysis; null = unobserved or not fixed, and `state` says which.

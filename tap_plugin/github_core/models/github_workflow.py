@@ -27,8 +27,10 @@ class GithubWorkflow(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__github_workflow"
-    # Repository + GitHub's workflow id, never the path: a renamed file keeps the same workflow.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "workflow_id")
+    # GitHub's workflow id alone (github-core#209): platform-global, never the path (a renamed
+    # file keeps the same workflow) and never `full_name` (a renamed repository must not mint a
+    # duplicate). `full_name` stays a plain, refreshed-on-observation attribute below.
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("workflow_id",)
     ENTITY_NAME: ClassVar[str] = "GitHub Workflow"
     ENTITY_DESCRIPTION: ClassVar[str] = "A GitHub Actions workflow definition."
     ENTITY_ICON: ClassVar[str] = "github-workflow"

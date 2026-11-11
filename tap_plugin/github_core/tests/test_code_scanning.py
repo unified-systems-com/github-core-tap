@@ -51,6 +51,7 @@ _MANIFEST = json.loads((_COLLECTOR / "github_collection_manifest.json").read_tex
 _LEDGER = json.loads((_COLLECTOR / "github_app_permissions.json").read_text())
 
 _REPO = "unified-systems-com/tap"
+_REPO_GITHUB_ID = 123456789
 _DIMS = {
     "git.host": "github.com",
     "github.owner": "unified-systems-com",
@@ -113,7 +114,7 @@ def _repo_envelope() -> dict[str, Any]:
         entity_type="github_core__github_repository",
         name=_REPO,
         dimensions={k: v for k, v in _DIMS.items() if not k.startswith("github.surface")},
-        fields={"full_name": _REPO, "code_scanning_observability": ""},
+        fields={"full_name": _REPO, "github_id": _REPO_GITHUB_ID, "code_scanning_observability": ""},
     )
 
 

@@ -34,9 +34,10 @@ class WorkflowJob(BaseModel):
     """
 
     ENTITY_TYPE: ClassVar[str] = "github_core__workflow_job"
-    # A DECLARED job: the workflow it is written in, plus its YAML key — not `name:`, which is
-    # free text an author changes without changing what the job is.
-    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("full_name", "workflow_id", "job_key")
+    # A DECLARED job: the workflow it is written in (GitHub's platform-global workflow id,
+    # github-core#209 — never `full_name`), plus its YAML key — not `name:`, which is free text
+    # an author changes without changing what the job is.
+    NATURAL_KEY: ClassVar[tuple[str, ...]] = ("workflow_id", "job_key")
     ENTITY_NAME: ClassVar[str] = "Workflow Job"
     ENTITY_DESCRIPTION: ClassVar[str] = (
         "A job as declared in a workflow file — its permissions, runner, condition, environment "
