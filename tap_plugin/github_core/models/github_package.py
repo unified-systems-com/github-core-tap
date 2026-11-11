@@ -13,6 +13,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
 
 class GithubPackage(BaseModel):
@@ -73,8 +74,7 @@ class GithubPackage(BaseModel):
         "version_count": {"type": ["integer", "null"]},
         "repository_full_name": {"type": "string"},
         "html_url": {"type": "string"},
-        "created_at": {"type": ["string", "null"]},
-        "updated_at": {"type": ["string", "null"]},
+        **timestamps("created_at", "updated_at"),
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }
@@ -108,14 +108,7 @@ class GithubPackage(BaseModel):
             "schema": {"type": "string"},
         },
         "html_url": {"validation": "jsonschema", "schema": {"type": "string"}},
-        "created_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
-        "updated_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
+        **timestamp_validations("created_at", "updated_at"),
         "configuration": {"validation": "jsonschema", "schema": {"type": "object"}},
         "tags": {"validation": "jsonschema", "schema": {"type": "object"}},
     }

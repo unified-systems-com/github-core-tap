@@ -42,7 +42,7 @@ Which types get one follows the shape table in github-core#14:
   falsifier on purpose: no containment edge reaches them, so they are never candidates, and
   a run does not stop having happened when GitHub ages it out.
 
-  ``pull_request``, ``code_scanning_alert`` and ``status_check`` join this shape (github-core#194;
+  ``pull_request``, ``code_scanning_alert``, ``dependabot_alert`` and ``status_check`` join this shape (github-core#194;
   an earlier audit flagged all three as "arguably event-like, no clear docstring stance" — this
   is that stance, with the reasoning on each model). A PR or an alert never leaves GitHub's API
   on close/merge or dismiss/fix — only ``state`` changes, which the collector already re-observes

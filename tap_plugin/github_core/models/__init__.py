@@ -8,6 +8,7 @@ from tap_plugin.github_core.models.code_scanning_alert import CodeScanningAlert
 from tap_plugin.github_core.models.code_scanning_analysis import CodeScanningAnalysis
 from tap_plugin.github_core.models.collection_scope import CollectionScope
 from tap_plugin.github_core.models.commit_observation import CommitObservation
+from tap_plugin.github_core.models.dependabot_alert import DependabotAlert
 from tap_plugin.github_core.models.github_account import GithubAccount
 from tap_plugin.github_core.models.github_action import GithubAction
 from tap_plugin.github_core.models.github_actions_job import GithubActionsJob
@@ -37,6 +38,7 @@ __all__ = [
     "CodeScanningAlert",
     "CodeScanningAnalysis",
     "CollectionScope",
+    "DependabotAlert",
     "GithubAccount",
     "GithubAction",
     "GithubActionsJob",

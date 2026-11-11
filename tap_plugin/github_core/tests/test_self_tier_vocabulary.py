@@ -1121,6 +1121,10 @@ class TestVocabularyIsDeclared:
             "checks": "read",
             "statuses": "read",
             "security_events": "read",
+            # `vulnerability_alerts` arrived with the Dependabot surface (github-core#68): the
+            # alert listing, each alert minted as a compliance_core finding. A sensitive read,
+            # recommended before it was derived and already held by the installed App.
+            "vulnerability_alerts": "read",
             # `environments` arrived with the settings surfaces (github-core#110): the REST
             # environment detail is the only transport for required reviewers, admin bypass and
             # the deployment branch policy. Recommended on the product App before it was derived.

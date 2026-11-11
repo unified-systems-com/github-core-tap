@@ -1,0 +1,28 @@
+{
+  "_description": "Signer identities TAP accepts for an image's SBOM attestations (req-cicd-sbom-22). Default deny: an attestation whose signer is not listed here is refused, and an empty or unreadable list refuses everything. Read by scripts/sbom/select_input.py, which verifies each listed identity with `gh attestation verify --cert-identity` and, where the entry pins one, `--signer-digest`.",
+  "format": "tap-sbom-trusted-signers/1",
+  "signers": [
+    {
+      "_description": "The publish pipeline that builds the images and signs revision 1 of every image's SBOM. Its Build Signer Digest is the commit of the workflow file at each build and changes with every build, so it cannot be pinned (read: the verified attestation for tap-web sha256:a9149a88 had signer digest 7cc8f759...). The identity is pinned by repository, workflow file and ref; branch protection on main is the control on the ref.",
+      "id": "tap-publish-images-transitional",
+      "repository": "unified-systems-com/tap",
+      "workflow_path": ".github/workflows/publish-images.yml",
+      "ref": "refs/heads/main",
+      "signer_digest": null,
+      "transitional": true,
+      "reason": "Revision 1 is signed by publish-images.yml, whose signer digest moves with every build. Remove this entry when publish-images.yml calls the reusable workflow, so one signer with one pinned digest signs every revision.",
+      "added_by": "George, ruled in the rampart-pg-ci session on 2026-10-16 (Q7a)"
+    },
+    {
+      "_description": "The reusable vulnerability-evidence workflow, called by commit. The certificate's signer identity ends in the commit the caller pinned, not in a branch, and its Build Signer Digest is that same commit, so both are pinned here. Observed on the first real run (run 38955198175): subject alternative name .../sbom-vulnerability-evidence.yml@5736329d..., Build Signer Digest 5736329d..., Build Config URI the dispatch caller on refs/heads/main.",
+      "id": "tap-sbom-evidence-5736329d",
+      "repository": "unified-systems-com/tap",
+      "workflow_path": ".github/workflows/sbom-vulnerability-evidence.yml",
+      "ref": "5736329dff506c952b5567260dd82c51adab5d74",
+      "signer_digest": "5736329dff506c952b5567260dd82c51adab5d74",
+      "transitional": false,
+      "reason": "Signs every revision after the first. Each change to the workflow is a new commit and a new caller pin, so a new entry here; the old entry stays so earlier revisions keep verifying, and is removed only by a reviewed change.",
+      "added_by": "George approved the first real signed run in the rampart-pg-ci session on 2026-10-16; this entry records the identity it produced"
+    }
+  ]
+}

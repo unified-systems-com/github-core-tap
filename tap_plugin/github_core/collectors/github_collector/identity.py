@@ -197,6 +197,15 @@ def code_scanning_alert_id(full_name: str, number: int | str) -> Ref:
     return _id("github_core__code_scanning_alert", f"{full_name}#{number}")
 
 
+def dependabot_alert_id(full_name: str, number: int | str) -> Ref:
+    """A Dependabot alert, keyed on the repository plus GitHub's alert number.
+
+    The number is how every URL and every dismissal names the alert within its repository, and
+    it is stable across re-scans. Repository-scoped because numbers restart per repository.
+    """
+    return _id("github_core__dependabot_alert", f"{full_name}#{number}")
+
+
 def code_scanning_analysis_id(full_name: str, analysis_id_int: int | str) -> Ref:
     """One analysis (one SARIF upload), keyed on the repository plus GitHub's analysis id.
 
@@ -253,6 +262,70 @@ def code_scanning_finding_id(full_name: str, number: int | str) -> Ref:
     its own plugin's identity module derives.
     """
     return _id("compliance_core__compliance_finding", code_scanning_finding_source_key(full_name, number))
+
+
+def dependabot_finding_source_key(full_name: str, number: int | str) -> str:
+    """What github_core calls one Dependabot finding, verbatim — composed HERE, once.
+
+    Same contract as :func:`code_scanning_finding_source_key`: the collector writes this string
+    into the finding's `source_key` column and :func:`dependabot_finding_id` names the ref with it.
+    The `#dependabot#` segment is what keeps repository `acme/app`'s Dependabot alert 7 and its
+    code-scanning alert 7 two findings.
+    """
+    return f"{full_name}#dependabot#{number}"
+
+
+def dependabot_finding_id(full_name: str, number: int | str) -> Ref:
+    """The generic `compliance_core__compliance_finding` github_core mints for a Dependabot alert.
+
+    A REF on compliance_core's declared key ``("source", "source_key")`` exactly as
+    :func:`code_scanning_finding_id` is; the collector owes the VALUES
+    (:data:`COMPLIANCE_FINDING_SOURCE` and :func:`dependabot_finding_source_key`) on the node.
+    """
+    return _id("compliance_core__compliance_finding", dependabot_finding_source_key(full_name, number))
+
+
+#: The middle segment of a finding's `source_key` that names the SBOM as the surface it came from. A
+#: repository's key is ``owner/repo#<surface>#<id>``; an SBOM finding's is ``<image>#sbom#<vulnerability>#<component>``
+#: with the image path (``ghcr.io/owner/name``) first, so it can never equal a repository-scoped key.
+SBOM_SURFACE = "sbom"
+
+
+def sbom_finding_source_key(image: str, vuln_id: str, component: str) -> str:
+    """What github_core calls one SBOM finding, verbatim — composed HERE, once.
+
+    One finding per (image, vulnerability, component node). The image is the NAME (``metadata.component.name``
+    of the attested document), not its digest and not the document: the digest changes with every build and the
+    component node (``ecosystem/name@version``) does not carry an architecture, so the same weakness in the same
+    component of the same image is one fact however many documents say it. Same contract as
+    :func:`code_scanning_finding_source_key`: the collector-side writer puts this string in `source_key` and
+    :func:`sbom_finding_id` names the ref with it.
+    """
+    return f"{image}#{SBOM_SURFACE}#{vuln_id}#{component}"
+
+
+def sbom_finding_id(image: str, vuln_id: str, component: str) -> Ref:
+    """The generic `compliance_core__compliance_finding` github_core mints for one SBOM vulnerability match."""
+    return _id("compliance_core__compliance_finding", sbom_finding_source_key(image, vuln_id, component))
+
+
+def sbom_vulnerability_id(vuln_id: str) -> Ref:
+    """The `compliance_core__compliance_vulnerability` for a public id (compliance_core's key is ``vuln_id`` alone)."""
+    return _id("compliance_core__compliance_vulnerability", vuln_id)
+
+
+def sbom_scanner_key(tool: str, locator: str) -> str:
+    """What github_core calls one scanner install seen through an SBOM: the tool and the verified workflow it ran in.
+
+    An INSTALL, never a version (compliance_core's rule): the same tool in two workflows is two scanners and a
+    new tool version is the same one. ``locator`` is the signer's workflow path without its ref.
+    """
+    return f"{tool}#{locator}"
+
+
+def sbom_scanner_id(tool: str, locator: str) -> Ref:
+    """The `compliance_core__compliance_scanner` for that install (key ``("source", "scanner_key")``)."""
+    return _id("compliance_core__compliance_scanner", f"{COMPLIANCE_FINDING_SOURCE}#{sbom_scanner_key(tool, locator)}")
 
 
 def environment_id(full_name: str, name: str) -> Ref:

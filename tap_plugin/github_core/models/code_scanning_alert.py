@@ -13,6 +13,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
 
 class CodeScanningAlert(BaseModel):
@@ -99,10 +100,7 @@ class CodeScanningAlert(BaseModel):
         "repository_github_id": {"type": ["integer", "null"]},
         "number": {"type": "integer"},
         "state": {"type": "string"},
-        "created_at": {"type": ["string", "null"]},
-        "updated_at": {"type": ["string", "null"]},
-        "fixed_at": {"type": ["string", "null"]},
-        "dismissed_at": {"type": ["string", "null"]},
+        **timestamps("created_at", "updated_at", "fixed_at", "dismissed_at"),
         "dismissed_reason": {"type": "string"},
         "dismissed_comment": {"type": "string"},
         "dismissed_by_login": {"type": "string"},
@@ -135,10 +133,7 @@ class CodeScanningAlert(BaseModel):
         "number": {"validation": "jsonschema", "schema": {"type": "integer", "minimum": 1}},
         "state": {"validation": "jsonschema", "schema": {"type": "string", "enum": STATES}},
         # null is "we did not observe a timestamp", never "now".
-        "created_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"]}},
-        "updated_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"]}},
-        "fixed_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"]}},
-        "dismissed_at": {"validation": "jsonschema", "schema": {"type": ["string", "null"]}},
+        **timestamp_validations("created_at", "updated_at", "fixed_at", "dismissed_at"),
         # GitHub's vocabulary verbatim: "false positive", "won't fix", "used in tests"; "" = not dismissed.
         "dismissed_reason": {"validation": "jsonschema", "schema": {"type": "string"}},
         "dismissed_comment": {"validation": "jsonschema", "schema": {"type": "string"}},

@@ -1,9 +1,10 @@
 {
   "slug": "DETAILS_FINDING__github_core",
   "name": "Details Finding",
-  "description": "The source-specific record behind a generic finding. The finding (compliance_core__compliance_finding) is what rules, panels and cross-plugin queries traverse; the detail is what a human reads when they open one — for a code scanning alert, the rule, its severities, the location and the dismissal. Exactly one detail per finding, and the finding's asset placement is NOT here: that is compliance_core's CARRIES_COMPLIANCE_FINDING from the repository or workflow. Nor is this evidence — CITES_COMPLIANCE_EVIDENCE is a different claim (something that SUPPORTS a verdict); the detail IS the observation the finding was minted from. Dependabot and secret-scanning detail nodes will be appended to `sources` as they land; the finding shape does not change.",
+  "description": "The source-specific record behind a generic finding. The finding (compliance_core__compliance_finding) is what rules, panels and cross-plugin queries traverse; the detail is what a human reads when they open one — for a code scanning alert, the rule, its severities, the location and the dismissal; for a Dependabot alert, the package and manifest, the advisory, the vulnerable range and the patched version. Exactly one detail per finding, and the finding's asset placement is NOT here: that is compliance_core's CARRIES_COMPLIANCE_FINDING from the repository or workflow. Nor is this evidence — CITES_COMPLIANCE_EVIDENCE is a different claim (something that SUPPORTS a verdict); the detail IS the observation the finding was minted from. The secret-scanning detail node will be appended to `sources` when it lands; the finding shape does not change.",
   "sources": [
-    "github_core__code_scanning_alert"
+    "github_core__code_scanning_alert",
+    "github_core__dependabot_alert"
   ],
   "targets": [
     "compliance_core__compliance_finding"

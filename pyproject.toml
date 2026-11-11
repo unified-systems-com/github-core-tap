@@ -23,13 +23,22 @@ dependencies = [
     "PyYAML>=6.0.2",
     # The collector imports identity_core.issuer to mint the OIDC issuer node and
     # ENABLED_ON targets its type — a code + vocabulary dependency (downward-only).
-    "tap-plugin-identity-core",
+    "identity-core-tap",
     # The collector mints git_core's repository / ref / commit ids through
     # tap_plugin.git_core.identity and emits those neutral types (github-core#76).
     "git-core-tap>=0.1.0,<0.2",
     # The collector mints compliance_core__compliance_finding for every scanner alert and
     # DETAILS_FINDING targets its type — a vocabulary + type dependency (github-core#89).
-    "tap-plugin-compliance-core>=0.4.0,<0.5",
+    "compliance-core-tap>=0.5.0,<0.9",
+    # sbom_vulnerabilities.py calls computing_core's parse_cyclonedx_vulnerabilities result types and names
+    # packages / libraries by natural key — a code + type dependency, downward-only. 0.9.0 is the first
+    # release carrying the reader.
+    "computing-core-tap>=0.9.0,<0.10",
+    # collectors/sbom_attestation_collector/verifier.py verifies SBOM attestation bundles in process with
+    # sigstore_core.verify.verify_dsse_bundle and reads the signed predicate with sigstore_core.statement —
+    # a code dependency, downward-only. sigstore_core owns the `sigstore` library; this plugin never imports it.
+    # 0.5.0 is the first release carrying verify_dsse_bundle.
+    "sigstore-core-tap>=0.5.0,<0.6",
 ]
 
 [project.entry-points."tap.plugins"]

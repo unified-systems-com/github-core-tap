@@ -24,6 +24,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
 
 class ActionsSecret(BaseModel):
@@ -72,8 +73,7 @@ class ActionsSecret(BaseModel):
         "name": {"type": "string", "minLength": 1},
         "name_reported": {"type": "string"},
         "visibility": {"type": "string"},
-        "created_at": {"type": ["string", "null"]},
-        "updated_at": {"type": ["string", "null"]},
+        **timestamps("created_at", "updated_at"),
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }
@@ -100,14 +100,7 @@ class ActionsSecret(BaseModel):
         },
         # GitHub's own word for which repositories an org secret reaches: all / private / selected.
         "visibility": {"validation": "jsonschema", "schema": {"type": "string"}},
-        "created_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
-        "updated_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
+        **timestamp_validations("created_at", "updated_at"),
         "configuration": {"validation": "jsonschema", "schema": {"type": "object"}},
         "tags": {"validation": "jsonschema", "schema": {"type": "object"}},
     }

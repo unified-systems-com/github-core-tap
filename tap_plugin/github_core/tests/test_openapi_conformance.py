@@ -153,6 +153,27 @@ _RENAMED_FROM: dict[str, dict[str, str]] = {
         "message": "most_recent_instance",
         "classifications": "most_recent_instance",
     },
+    # Nested objects flattened onto the node, mapped to the TOP-LEVEL key they are read under:
+    # `dependency.*`, `security_advisory.*`, `security_vulnerability.*` and `dismissed_by.login`
+    # (req-github-core-dependabot-alerts).
+    "dependabot_alerts": {
+        "dismissed_by_login": "dismissed_by",
+        "ecosystem": "dependency",
+        "package_name": "dependency",
+        "manifest_path": "dependency",
+        "dependency_scope": "dependency",
+        "relationship": "dependency",
+        "ghsa_id": "security_advisory",
+        "cve_id": "security_advisory",
+        "advisory_summary": "security_advisory",
+        "advisory_description": "security_advisory",
+        "severity": "security_advisory",
+        "cvss_score": "security_advisory",
+        "cvss_vector": "security_advisory",
+        "cwes": "security_advisory",
+        "vulnerable_version_range": "security_vulnerability",
+        "first_patched_version": "security_vulnerability",
+    },
     "code_scanning_analyses": {
         "analysis_id": "id",
         "tool_name": "tool",

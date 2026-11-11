@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "github_core SBOM attestation collector config",
+  "description": "Which image digests the SBOM attestation collector reads, and where its default-deny trust list lives (req-github-core-sbom-attestations-1). Operator-owned and off-grid: the file sits beside the collector credential under TAP_SECRETS_ROOT. No image name is built into the plugin; an empty subjects list is invalid.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["_description", "format", "trusted_signers_path", "subjects"],
+  "properties": {
+    "_description": {"type": "string", "minLength": 1, "description": "Human and AI readable purpose of this config file."},
+    "format": {"const": "github-core-sbom-attestations/1", "description": "Format discriminator; bumped on a breaking shape change."},
+    "trusted_signers_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^/[^\\u0000]*$",
+      "description": "Absolute path of the trust list (tap's scripts/sbom/trusted-signers.json, format tap-sbom-trusted-signers/1). Read at the start of every run; an unreadable, invalid or empty list refuses the run. Never defaulted."
+    },
+    "on_unverified_attestation": {
+      "enum": ["warn", "abort"],
+      "default": "warn",
+      "description": "What to do when GitHub lists more CycloneDX attestations for a subject than the trusted signers verified: record a warning (warn) or stop the run before anything is submitted (abort). The unverified ones are never read either way."
+    },
+    "verifier": {
+      "enum": ["sigstore_core", "gh"],
+      "default": "sigstore_core",
+      "description": "Who checks the signature chain. sigstore_core (default) verifies each bundle in process with the sigstore_core plugin under a policy built from the trust list entry; gh runs `gh attestation verify` per trust list entry and needs the gh CLI on PATH. Both are held to the trust list again afterwards."
+    },
+    "batch_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "default": "SBOM vulnerabilities (verified attestations)",
+      "description": "Name of the GRIFT batch the run submits."
+    },
+    "subjects": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "description": "The image digests whose attestations are read. Each is one attested subject: a per-architecture manifest digest, because that is what CI signs. Image tags are never resolved here (a tag is mutable).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["_description", "image", "digest"],
+        "properties": {
+          "_description": {"type": "string", "minLength": 1, "description": "What this subject is and why it is read."},
+          "image": {
+            "type": "string",
+            "pattern": "^ghcr\\.io/[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._/-]*$",
+            "description": "The image repository without tag or digest, e.g. ghcr.io/<owner>/<name>. The second path segment is the owner whose attestations are read."
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "The manifest digest the attestations are about."
+          }
+        }
+      }
+    }
+  }
+}

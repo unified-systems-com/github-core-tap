@@ -10,6 +10,7 @@ from typing import Any, ClassVar
 from django.db import models
 
 from tap_grid.models import BaseModel
+from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
 
 class GithubPackageVersion(BaseModel):
@@ -56,8 +57,7 @@ class GithubPackageVersion(BaseModel):
         "purl": {"type": "string"},
         "container_tags": {"type": "array"},
         "html_url": {"type": "string"},
-        "created_at": {"type": ["string", "null"]},
-        "updated_at": {"type": ["string", "null"]},
+        **timestamps("created_at", "updated_at"),
         "configuration": {"type": "object"},
         "tags": {"type": "object"},
     }
@@ -80,14 +80,7 @@ class GithubPackageVersion(BaseModel):
         "purl": {"validation": "jsonschema", "schema": {"type": "string"}},
         "container_tags": {"validation": "jsonschema", "schema": {"type": "array"}},
         "html_url": {"validation": "jsonschema", "schema": {"type": "string"}},
-        "created_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
-        "updated_at": {
-            "validation": "jsonschema",
-            "schema": {"type": ["string", "null"]},
-        },
+        **timestamp_validations("created_at", "updated_at"),
         "configuration": {"validation": "jsonschema", "schema": {"type": "object"}},
         "tags": {"validation": "jsonschema", "schema": {"type": "object"}},
     }
