@@ -42,7 +42,7 @@ def noop_reverse(apps: Any, schema_editor: Any) -> None:
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("github_core", "0021_actions_secret_name_reported"),
+        ("github_core", "0022_dependabot_alerts"),
         ("tap_grid", "0005_entity_natural_key_clear"),
     ]
 

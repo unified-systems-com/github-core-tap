@@ -18,7 +18,7 @@ from django.apps import apps
 
 migration_module = importlib.import_module(
     "tap_plugin.github_core.migrations"
-    ".0022_remove_actionsartifact_nk_github_core__action_5b40a61_and_more"
+    ".0023_remove_actionsartifact_nk_github_core__action_5b40a61_and_more"
 )
 
 
