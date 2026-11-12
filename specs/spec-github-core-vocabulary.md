@@ -293,3 +293,32 @@ readable catalogue, a collector can land it on the grid so "what changed" become
 4. **When the neutral substrate is extracted.** 11 concepts are marked neutral and the kernel test
    confirms they populate from a non-forge project. Extraction while a slug change is still a
    re-collect is cheaper than a migration later.
+5. **`audit_log_event`: a node worth building, blocked on plan tier, not on design.** Two
+   compromise-investigation writeups (Datadog Security Labs, [*Mapping Out Your
+   Unknown*](https://securitylabs.datadoghq.com/articles/mapping-out-your-unknown-threat-hunters-guide-to-github/);
+   Wiz, [*Investigating GitHub PAT Compromise*](https://www.wiz.io/blog/investigating-github-pat-compromise))
+   both build their entire detection method on the org audit log: a compromised credential's
+   reconnaissance (repo enumeration, secrets-listing calls, Git Trees walks) and collection phase
+   (mass clone/fetch bursts, dormant-token reactivation, unusual ASN) are all findable as fan-out
+   counts and baseline deviations **grouped by actor over time** — exactly the shape the node test
+   asks for: many events, one shared reference point other things point at (an actor, a token, a
+   repo), the same reason `github_ruleset`'s bypass state lives on the node rather than the edge
+   (`3`, above).
+
+   **Measured 2026-09-26, and it is a hard floor, not a credential gap:** `GET
+   /orgs/{org}/audit-log` 404s against `unified-systems-com` even with `admin:org` scope — checked
+   directly, not inferred from the 404 alone (the same discipline `3`'s asymmetry write-up used).
+   `GET /orgs/{org}` returns `plan.name: "team"`; the endpoint is Enterprise Cloud-only and does not
+   exist for a Team-tier org under any credential. Enterprise Cloud is $21/seat/month (first-year
+   rate) against Team's $4 — for this org's 2 seats, about +$34/month. Not committing to the spend
+   for this alone; tracked here so the moment either the org upgrades for an unrelated reason
+   (SAML SSO, the bundled security features) or the tier changes, this is the first thing to build,
+   not a rediscovery. Tracking issue: `github-core#192`.
+
+   Sketch, if it's ever built: an `AuditLogEvent` node per audit-log entry (actor, action, repo,
+   token-hash where present, timestamp, source IP/ASN), collected the way every other github_core
+   surface is — a completeness-tracked listing, falsifier-eligible only where that makes sense
+   (most audit events are shape-C immutable, same as `github_actions_run`). The three detection
+   patterns both writeups name — mass-clone burst by actor, secrets-enumeration fan-out by
+   hashed-token, PAT reactivation after long dormancy — are then Gryphon queries over that node, not
+   bespoke SIEM rules.
