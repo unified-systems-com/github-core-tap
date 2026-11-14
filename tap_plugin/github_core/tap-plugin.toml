@@ -118,6 +118,7 @@ github_core__actions_secret = "tap_plugin.github_core.falsifiers.ActionsSecretFa
 github_core__app_installation = "tap_plugin.github_core.falsifiers.AppInstallationFalsifier"
 
 [grift]
+dimension = "grift/dimension.grift.json"
 repo-landing-page = "grift/repo-landing-page.grift.json"
 workflow-page = "grift/workflow-page.grift.json"
 

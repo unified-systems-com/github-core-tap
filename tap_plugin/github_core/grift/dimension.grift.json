@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "grift_version": "0"
+  },
+  "_reserved": {},
+  "batches": [
+    {
+      "batch_entity": {
+        "entity_id": "01a1d10a-e9e7-71e3-bda0-59f716ca6db1",
+        "entity_type": "batch",
+        "name": "GitHub core dimensions v0.1.0",
+        "dimensions": {}
+      },
+      "batch_node": {
+        "source": "plugins.github_core",
+        "name": "GitHub core dimensions v0.1.0",
+        "description": "Dimension nodes for every dimension key the github_core plugin declares, so each key has a declared node before the dimension map moves to keying by node id (tap#708, tap#711)."
+      },
+      "nodes": [
+        {
+          "entity": {
+            "entity_id": "01a1d10a-e9e7-71e3-bda0-59f5841ece12",
+            "entity_type": "dimension",
+            "name": "github.observation",
+            "dimensions": {
+              "tap.meta": "dimension"
+            }
+          },
+          "node": {
+            "name": "github.observation",
+            "description": "Whether a node or edge records what CI was declared to do (declaration) or what it actually did (execution). Defined in domain/dimensions/github.observation.md."
+          }
+        },
+        {
+          "entity": {
+            "entity_id": "01a1d10a-e9e7-71e3-bda0-59f6cc777266",
+            "entity_type": "dimension",
+            "name": "github.surface",
+            "dimensions": {
+              "tap.meta": "dimension"
+            }
+          },
+          "node": {
+            "name": "github.surface",
+            "description": "Which GitHub product surface an observation came from (actions, apps, rules, pulls, releases, packages, secrets, security, ...), and so which credential could see it. Defined in domain/dimensions/github.surface.md."
+          }
+        }
+      ],
+      "edges": []
+    }
+  ]
+}
