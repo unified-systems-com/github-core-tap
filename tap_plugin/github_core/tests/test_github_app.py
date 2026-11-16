@@ -11,6 +11,7 @@ from tap_plugin.github_core.collectors.github_collector.identity import github_a
 from tap_grid.models import Entity
 from tap_grid.registry import get_model_class
 from tap_grid.services import create_edge, create_node
+from tap_plugin.github_core.tests.conftest import dimension_view
 
 
 def _create(type_slug: str, payload: dict):
@@ -27,7 +28,7 @@ class TestGithubApp:
         app.entity.refresh_from_db()
         assert app.slug == "dependabot"
         assert app.entity.name == "Dependabot"
-        assert app.entity.dimensions.get("github.surface") == "apps"
+        assert dimension_view(app.entity).get("github.surface") == "apps"
 
     def test_name_falls_back_to_slug(self):
         app = _create("github_core__github_app", {"slug": "dependabot"})

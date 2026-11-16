@@ -52,6 +52,7 @@ from tap_grid.registry import get_model_class
 from tap_grid.services import create_node
 
 from .envelopes import edge_to
+from tap_plugin.github_core.tests.conftest import dimension_view
 
 
 def _create(type_slug: str, payload: dict):
@@ -158,7 +159,7 @@ class TestDeclaredJobNode:
             "github_core__workflow_job", {"full_name": "o/r", "job_key": "build"}
         )
         job.entity.refresh_from_db()
-        assert job.entity.dimensions.get("github.observation") == "declaration"
+        assert dimension_view(job.entity).get("github.observation") == "declaration"
 
     def test_checkout_ref_is_a_column_not_a_blob_key(self) -> None:
         job = _create(

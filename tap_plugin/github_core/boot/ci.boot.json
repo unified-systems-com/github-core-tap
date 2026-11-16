@@ -9,8 +9,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/identity-core-tap",
-          "rev": "v0.1.6",
-          "commit": "11f087954ff5d06792abc4a3994d7eae77bbcb5b"
+          "rev": "v0.1.7",
+          "commit": "853ac4eeb7efebdd85e4baa2bfbde850c842d477"
         }
       },
       {
@@ -19,8 +19,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/git-core-tap",
-          "rev": "v0.1.0",
-          "commit": "efa983a582eaef7d16e27daa50a68aeaef7c56de"
+          "rev": "v0.1.2",
+          "commit": "141b268de216402a643cbe1141642e697dd98bec"
         }
       },
       {
@@ -29,8 +29,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/compliance-core-tap",
-          "rev": "v0.7.0",
-          "commit": "946f6a23fb03b3a2f03982228379c91d67e96434"
+          "rev": "v0.8.12",
+          "commit": "93083982d2c5b165a43ef0458e6ca22bf9c71ac0"
         }
       },
       {
@@ -39,8 +39,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/computing-core-tap",
-          "rev": "v0.9.0",
-          "commit": "2e7941ac9e73ce789c50621fa0bd553530d8222e"
+          "rev": "v0.10.8",
+          "commit": "f244539e7626cb8996238b32a53f0010eafe09d0"
         }
       },
       {

@@ -33,6 +33,7 @@ from tap_grid.registry import get_model_class
 from tap_grid.services import create_edge, create_node
 
 from .envelopes import envelope_key
+from tap_plugin.github_core.tests.conftest import dimension_view
 
 
 def _create(type_slug: str, payload: dict):
@@ -289,8 +290,8 @@ class TestActionNode:
         action = _create("github_core__github_action", {"action_path": "actions/checkout", "kind": "repository"})
         assert action.get_name() == "actions/checkout"
         action.entity.refresh_from_db()
-        assert action.entity.dimensions.get("github.observation") == "declaration"
-        assert "github.repo" not in action.entity.dimensions
+        assert dimension_view(action.entity).get("github.observation") == "declaration"
+        assert "github.repo" not in dimension_view(action.entity)
 
     def test_kind_is_constrained(self) -> None:
         result = create_node("github_core__github_action", {"action_path": "x/y", "kind": "orb"})

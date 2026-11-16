@@ -24,6 +24,7 @@ from tap_grid.registry import get_model_class
 from tap_grid.services import create_edge, create_node
 
 from .envelopes import edge_from, edge_to
+from tap_plugin.github_core.tests.conftest import dimension_view
 
 
 def _create(type_slug: str, payload: dict):
@@ -195,7 +196,7 @@ class TestModelAndEdge:
     def test_the_node_is_execution_side(self) -> None:
         artifact = _create("github_core__actions_artifact", {"full_name": "o/r", "artifact_id": 1, "name": "sbom"})
         artifact.entity.refresh_from_db()
-        assert artifact.entity.dimensions.get("github.observation") == "execution"
+        assert dimension_view(artifact.entity).get("github.observation") == "execution"
         assert artifact.get_name() == "sbom"
 
     def test_the_upload_edge_is_run_to_artifact_and_property_free(self) -> None:

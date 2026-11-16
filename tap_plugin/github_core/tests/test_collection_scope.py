@@ -40,6 +40,7 @@ from tap_cares.collectors.config import CollectorConfig
 from tap_grid.services import create_node
 
 from .envelopes import edge_from, edge_to, envelope_key
+from tap_plugin.github_core.tests.conftest import dimension_view
 
 EDGES_DIR = Path(github.__file__).parent.parent / "edges"
 
@@ -418,7 +419,7 @@ class TestModelShape:
         assert result.success, result.errors
         row = CollectionScope.objects.get(entity_id=result.entity_id)
         row.entity.refresh_from_db()
-        assert row.entity.dimensions["github.observation"] == "execution"
+        assert dimension_view(row.entity)["github.observation"] == "execution"
         assert row.entity.name == "collection scope @ 2026-09-14T12:00:00Z"
         assert row.selection == _SELECTED and row.visibility == {} and row.tiers == {}
         assert row.plan == "team" and row.installation_id == 7
