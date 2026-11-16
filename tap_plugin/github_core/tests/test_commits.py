@@ -27,6 +27,7 @@ from tap_grid.service_types import WriteOperation
 from tap_grid.services import create_edge, create_node, write_batch
 
 from .envelopes import edge_from, edge_to, envelope_key
+from tap_plugin.github_core.tests.conftest import dimension_containment
 
 
 def _create(type_slug: str, payload: dict):
@@ -548,7 +549,7 @@ class TestOneHostIsOneFilter:
         assert landed.success, landed.errors
 
         on_this_host = Entity.objects.filter(
-            dimensions__contains={"git.host": "github.com"}
+            dimensions__contains=dimension_containment("git.host", "github.com")
         )
         types = set(on_this_host.values_list("entity_type", flat=True))
         assert {"github_core__commit_observation", "git_core__git_commit"} <= types, (

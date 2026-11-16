@@ -20,7 +20,12 @@ FOREIGN = {"git.host": ("git_core", "01a1d10a-eb22-7742-a0c1-5988c9d08db4")}  # 
 PINNED = {
     "github.observation": "01a1d10a-e9e7-71e3-bda0-59f5841ece12",
     "github.surface": "01a1d10a-e9e7-71e3-bda0-59f6cc777266",
+    "github.owner": "01a1e4f0-dcff-735e-a647-6b9f901912f4",
+    "github.repo": "01a1e4f0-dd43-7768-96c4-7ab130e2dfe1",
 }
+# Keys no type declares: the collector stamps them on the rows it reads under one owner or repository
+# (collector._REPO_SCOPED_DIMENSION_KEYS). They are named here because no DEFAULT_DIMENSIONS carries them.
+COLLECTOR_STAMPED = {"github.owner", "github.repo"}
 
 
 def _dimension_nodes() -> list[dict]:
@@ -104,7 +109,7 @@ def _declared_keys() -> set[str]:
 
 def test_every_declared_key_has_a_dimension_node() -> None:
     names = {n["node"]["name"] for n in _dimension_nodes()}
-    missing = _declared_keys() - names - set(FOREIGN)
+    missing = (_declared_keys() | COLLECTOR_STAMPED) - names - set(FOREIGN)
     assert not missing, f"declared dimension keys with no Dimension node in {SEED.name}: {sorted(missing)}"
 
 
@@ -153,3 +158,9 @@ def test_a_mutated_declaration_fails_closed() -> None:
         with pytest.raises(UnresolvedDeclaration):
             _refuse_mutation(ast.parse(source).body[0], "probe")
     _refuse_mutation(ast.parse('DEFAULT_DIMENSIONS = {"x.y": "z"}').body[0], "probe")
+
+
+def test_the_collector_stamped_keys_are_the_ones_the_collector_names() -> None:
+    from tap_plugin.github_core.collectors.github_collector import collector
+
+    assert set(collector._REPO_SCOPED_DIMENSION_KEYS) == COLLECTOR_STAMPED

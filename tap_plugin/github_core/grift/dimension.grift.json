@@ -44,6 +44,34 @@
             "name": "github.surface",
             "description": "Which GitHub product surface an observation came from (actions, apps, rules, pulls, releases, packages, secrets, security, ...), and so which credential could see it. Defined in domain/dimensions/github.surface.md."
           }
+        },
+        {
+          "entity": {
+            "entity_id": "01a1e4f0-dcff-735e-a647-6b9f901912f4",
+            "entity_type": "dimension",
+            "name": "github.owner",
+            "dimensions": {
+              "tap.meta": "dimension"
+            }
+          },
+          "node": {
+            "name": "github.owner",
+            "description": "The GitHub account (organization or user) a repository-scoped row belongs to, as its login at collection time. Stamped by the collector on everything it reads under one owner, never declared on a type."
+          }
+        },
+        {
+          "entity": {
+            "entity_id": "01a1e4f0-dd43-7768-96c4-7ab130e2dfe1",
+            "entity_type": "dimension",
+            "name": "github.repo",
+            "dimensions": {
+              "tap.meta": "dimension"
+            }
+          },
+          "node": {
+            "name": "github.repo",
+            "description": "The repository a repository-scoped row belongs to, as its name at collection time. Stamped by the collector alongside github.owner on everything it reads under one repository, never declared on a type."
+          }
         }
       ],
       "edges": []

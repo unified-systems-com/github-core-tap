@@ -19,6 +19,7 @@ from tap_plugin.github_core.models.code_scanning_analysis import CodeScanningAna
 from tap_plugin.github_core.models.github_repository import GithubRepository
 
 from tap_grid.services import create_node
+from tap_plugin.github_core.tests.conftest import dimension_view
 
 _REPO = "unified-systems-com/tap"
 _SHA = "0f3b2bac1d4e5f60718293a4b5c6d7e8f9a0b1c2"
@@ -105,8 +106,8 @@ class TestCodeScanningAlertShape:
         row = CodeScanningAlert.objects.get(entity_id=result.entity_id)
         row.entity.refresh_from_db()
         assert row.entity.name == "CodeQL py/sql-injection #42"
-        assert row.entity.dimensions["github.observation"] == "execution"
-        assert row.entity.dimensions["github.surface"] == "security"
+        assert dimension_view(row.entity)["github.observation"] == "execution"
+        assert dimension_view(row.entity)["github.surface"] == "security"
         assert row.number == 42
         assert row.security_severity_level == "high"
         assert row.location["start_line"] == 120
@@ -175,8 +176,8 @@ class TestCodeScanningAnalysisShape:
         row = CodeScanningAnalysis.objects.get(entity_id=result.entity_id)
         row.entity.refresh_from_db()
         assert row.entity.name == f"CodeQL {_SHA[:7]} #201234567"
-        assert row.entity.dimensions["github.observation"] == "execution"
-        assert row.entity.dimensions["github.surface"] == "security"
+        assert dimension_view(row.entity)["github.observation"] == "execution"
+        assert dimension_view(row.entity)["github.surface"] == "security"
         assert row.analysis_id == 201_234_567
         assert row.commit_sha == _SHA
         assert row.results_count == 3 and row.rules_count == 158

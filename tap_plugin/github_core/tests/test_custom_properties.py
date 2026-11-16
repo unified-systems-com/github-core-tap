@@ -34,6 +34,7 @@ from tap_grid.registry import get_model_class
 from tap_grid.services import create_node
 
 from .envelopes import envelope_key
+from tap_plugin.github_core.tests.conftest import dimension_view
 
 _FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "custom_properties.json").read_text())
 _OWNER = "unified-systems-com"
@@ -144,7 +145,7 @@ class TestDefinitionsLand:
         row.entity.refresh_from_db()
         assert row.entity.name == "ownership-name"
         assert row.value_type == "string"
-        assert row.entity.dimensions.get("github.surface") == "custom-properties"
+        assert dimension_view(row.entity).get("github.surface") == "custom-properties"
 
     def test_identity_is_deterministic_and_distinct_from_other_owner_scoped_types(self) -> None:
         minted = custom_property_id(_OWNER, "criticality")

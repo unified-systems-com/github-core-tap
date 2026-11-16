@@ -22,6 +22,7 @@ from tap_grid.registry import get_model_class
 from tap_grid.services import create_edge, create_node
 
 from .envelopes import edge_from
+from tap_plugin.github_core.tests.conftest import dimension_view
 
 
 def _create(type_slug: str, payload: dict):
@@ -237,5 +238,5 @@ class TestSchemas:
     def test_the_node_is_owner_scoped_rules_surface(self) -> None:
         check = _create("github_core__status_check", {"owner_login": "o", "context": "gate"})
         check.entity.refresh_from_db()
-        assert check.entity.dimensions.get("github.surface") == "rules"
+        assert dimension_view(check.entity).get("github.surface") == "rules"
         assert check.get_name() == "gate"
