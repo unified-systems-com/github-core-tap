@@ -1,5 +1,5 @@
 manifest_version = "0"
-plugin_version = "0.14.0" # x-release-please-version
+plugin_version = "0.14.1" # x-release-please-version
 # 0.2.1 (2026-09-22): the first core release carrying tap_cares.collectors.run_with_ceiling
 # (unified-systems-com/tap#753, unified-systems-com/tap#750) — this PR's own _under_ceiling
 # de-duplicates onto it, so the floor names the release that actually has the symbol.
@@ -125,4 +125,4 @@ workflow-page = "grift/workflow-page.grift.json"
 [[boot.records]]
 name = "ci"
 description = "RESERVED NAME (req-boot-bootstrap-ci-record): the stack this plugin's own tests run in — depends_on closure + self, offline, credential-free. The consumer flips self to editable."
-sha256 = "2f87d5966284c2147ad8aa9d941aedc1bb88dbe7e96b9b263e774ea1b4937979"
+sha256 = "589e04c4247f3efd4b7b98490baf95ff71a78053fabcb1fce402cdf93acedc3d"
