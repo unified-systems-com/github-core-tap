@@ -29,8 +29,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/compliance-core-tap",
-          "rev": "v0.8.12",
-          "commit": "93083982d2c5b165a43ef0458e6ca22bf9c71ac0"
+          "rev": "v0.8.13",
+          "commit": "4169092e43aeb60ab23919688890318b584ea1a0"
         }
       },
       {
@@ -49,8 +49,8 @@
         "source": {
           "type": "git",
           "url": "https://github.com/unified-systems-com/sigstore-core-tap",
-          "rev": "v0.5.1",
-          "commit": "b368fa2d4b53a7b4bc8247d9598beb059d31287e"
+          "rev": "v0.5.3",
+          "commit": "a650c1b56f68b4bd8ebaae4bef248a4cf3395dd9"
         }
       },
       {
