@@ -15,6 +15,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -41,6 +42,8 @@ class GithubAction(BaseModel):
         "the job's token. How each job pins it lives on the USES_ACTION edge."
     )
     ENTITY_ICON: ClassVar[str] = "github-action"
+    # A reusable action named by `uses:`; nothing in it is a time the source states.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     # No owner/repo dimension: a shared node belongs to no one repository. Declaration-side,
     # because a `uses:` line is something WRITTEN, and stamping it `execution` would claim the
     # action ran, which the workflow file cannot say.

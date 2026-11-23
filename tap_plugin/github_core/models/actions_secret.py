@@ -23,6 +23,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
@@ -50,6 +51,8 @@ class ActionsSecret(BaseModel):
         "write-only and is never read, stored or displayed."
     )
     ENTITY_ICON: ClassVar[str] = "github-secret"
+    # The secret exists from GitHub's created_at; updated_at is a later edit of the value, not an end.
+    EVENT_TIME: ClassVar[Any] = Interval("created_at", "created")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "declaration",
         "git.host": "github.com",

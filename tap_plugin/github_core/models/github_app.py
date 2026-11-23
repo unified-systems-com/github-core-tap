@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -48,6 +49,8 @@ class GithubApp(BaseModel):
         "A GitHub App or first-party platform app (e.g. Dependabot) enabled on a repository."
     )
     ENTITY_ICON: ClassVar[str] = "github-app"
+    # No source time is stored: the App's created_at is not kept, and synthetic platform apps have none.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.surface": "apps",

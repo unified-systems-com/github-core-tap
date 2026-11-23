@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamps
 
@@ -28,6 +29,8 @@ class GithubActionsJob(BaseModel):
     ENTITY_NAME: ClassVar[str] = "GitHub Actions Job"
     ENTITY_DESCRIPTION: ClassVar[str] = "One job within a GitHub Actions workflow run."
     ENTITY_ICON: ClassVar[str] = "github-actions-job"
+    # A job GitHub ran: GitHub's started_at to completed_at (null while the job is still running).
+    EVENT_TIME: ClassVar[Any] = Interval("started_at", "occurred", end="completed_at")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.surface": "actions",

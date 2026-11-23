@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -40,6 +41,8 @@ class GithubRunner(BaseModel):
         "A durable registered self-hosted GitHub Actions runner."
     )
     ENTITY_ICON: ClassVar[str] = "github-runner"
+    # GitHub's runner object carries no timestamp, and the model stores none.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.surface": "actions",

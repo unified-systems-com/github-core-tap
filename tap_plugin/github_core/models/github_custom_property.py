@@ -11,6 +11,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -38,6 +39,8 @@ class GithubCustomProperty(BaseModel):
         "allowed values and default — against which each repository's value is read."
     )
     ENTITY_ICON: ClassVar[str] = "github-custom-property"
+    # An organization's property definition; GitHub states no time for it and the model stores none.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "declaration",
         "git.host": "github.com",

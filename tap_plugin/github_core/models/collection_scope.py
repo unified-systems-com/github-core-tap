@@ -22,6 +22,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 #: The closed vocabulary a tier verdict's `reason` takes, verbatim, so that
@@ -298,6 +299,8 @@ class CollectionScope(BaseModel):
         "could see — the fact every absence decision reads before it trusts a missing item."
     )
     ENTITY_ICON: ClassVar[str] = "collection-scope"
+    # A run of this plugin's own collector: observed_at is collection time, never an event time.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "execution",
         "git.host": "github.com",

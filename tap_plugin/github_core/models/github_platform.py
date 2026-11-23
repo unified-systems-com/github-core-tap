@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -27,6 +28,8 @@ class GithubPlatform(BaseModel):
         "A GitHub platform instance (github.com or a GHES host)."
     )
     ENTITY_ICON: ClassVar[str] = "github-platform"
+    # The host instance itself; GitHub states no time for it and the model stores none.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.observation": "declaration",

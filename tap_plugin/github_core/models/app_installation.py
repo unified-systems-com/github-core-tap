@@ -11,6 +11,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import DATE_TIME
 
@@ -69,6 +70,8 @@ class AppInstallation(BaseModel):
         "reaches, and whether it is suspended."
     )
     ENTITY_ICON: ClassVar[str] = "app-installation"
+    # The grant exists from GitHub's installation created_at (stored as installed_at); suspension is not an end.
+    EVENT_TIME: ClassVar[Any] = Interval("installed_at", "created")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "declaration",
         "git.host": "github.com",

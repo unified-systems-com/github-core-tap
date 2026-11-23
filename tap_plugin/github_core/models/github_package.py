@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
@@ -41,6 +42,8 @@ class GithubPackage(BaseModel):
         "package — with its purl, so the supply-chain substrate can claim it by identity."
     )
     ENTITY_ICON: ClassVar[str] = "github-package"
+    # The package exists from GitHub's created_at; updated_at is the source's last edit, and no end is stored.
+    EVENT_TIME: ClassVar[Any] = Interval("created_at", "created")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.surface": "packages",

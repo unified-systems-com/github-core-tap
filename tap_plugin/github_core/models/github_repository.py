@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -46,6 +47,8 @@ class GithubRepository(BaseModel):
     ENTITY_NAME: ClassVar[str] = "GitHub Repository"
     ENTITY_DESCRIPTION: ClassVar[str] = "A repository hosted on GitHub."
     ENTITY_ICON: ClassVar[str] = "github-repository"
+    # No source time is stored: GitHub's created_at/pushed_at are not kept; `configuration` holds settings keys only.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.observation": "declaration",

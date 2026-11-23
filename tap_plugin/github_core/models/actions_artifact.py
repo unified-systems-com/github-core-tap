@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
@@ -42,6 +43,8 @@ class ActionsArtifact(BaseModel):
         "The output of a run, as GitHub recorded it."
     )
     ENTITY_ICON: ClassVar[str] = "actions-artifact"
+    # Created at GitHub's created_at and kept until expires_at, the end of retention GitHub states.
+    EVENT_TIME: ClassVar[Any] = Interval("created_at", "created", end="expires_at")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         # Something that HAPPENED: an execution-side object, like the run that produced it.
         "github.observation": "execution",

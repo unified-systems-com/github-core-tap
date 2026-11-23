@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
@@ -52,6 +53,8 @@ class DependabotAlert(BaseModel):
         "alert is open, fixed or dismissed (and why)."
     )
     ENTITY_ICON: ClassVar[str] = "dependabot-alert"
+    # A finding, at its creation; no end, because GitHub states three (fixed_at, dismissed_at, auto_dismissed_at).
+    EVENT_TIME: ClassVar[Any] = Interval("created_at", "created")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         # An alert is the OUTPUT of GitHub's scanner — something that happened, like a run.
         "github.observation": "execution",
