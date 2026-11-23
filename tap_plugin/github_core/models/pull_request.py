@@ -10,6 +10,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
@@ -51,6 +52,8 @@ class PullRequest(BaseModel):
         "mergeability, and the combined check verdict on its head commit."
     )
     ENTITY_ICON: ClassVar[str] = "pull-request"
+    # Opened at GitHub's created_at, open until closed_at (set on merge or close, cleared on reopen).
+    EVENT_TIME: ClassVar[Any] = Interval("created_at", "created", end="closed_at")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "execution",
         "git.host": "github.com",

@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
@@ -60,6 +61,8 @@ class CodeScanningAlert(BaseModel):
         "message, the analysis that produced it, and whether it is open, fixed or dismissed (and why)."
     )
     ENTITY_ICON: ClassVar[str] = "code-scanning-alert"
+    # A finding, at its creation; no end, because GitHub states two (fixed_at, dismissed_at), kept as typed fields.
+    EVENT_TIME: ClassVar[Any] = Interval("created_at", "created")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         # An alert is the OUTPUT of a scanner run — something that happened, like a run.
         "github.observation": "execution",

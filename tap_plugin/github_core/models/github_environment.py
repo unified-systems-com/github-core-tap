@@ -9,6 +9,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -33,6 +34,8 @@ class GithubEnvironment(BaseModel):
         "A named deployment environment and the protection rules standing in front of it."
     )
     ENTITY_ICON: ClassVar[str] = "github-environment"
+    # No source time is stored: the environment's created_at is not kept; `configuration` holds the reviewers.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "declaration",
         "git.host": "github.com",

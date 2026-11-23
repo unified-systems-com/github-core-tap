@@ -10,6 +10,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Moment
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import DATE_TIME, DATE_TIME_VALIDATION
 
@@ -34,6 +35,8 @@ class CodeScanningAnalysis(BaseModel):
         "its result and rule counts, and any warning or error the upload carried."
     )
     ENTITY_ICON: ClassVar[str] = "code-scanning-analysis"
+    # One SARIF upload; GitHub states only when the analysis was created, no scan start or finish.
+    EVENT_TIME: ClassVar[Any] = Moment("created_at", "occurred")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         # A scanner RAN: an execution in the same category as a workflow run.
         "github.observation": "execution",

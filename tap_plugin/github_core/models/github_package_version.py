@@ -9,6 +9,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Interval
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
@@ -36,6 +37,8 @@ class GithubPackageVersion(BaseModel):
         "or a registry version — and its purl."
     )
     ENTITY_ICON: ClassVar[str] = "github-package-version"
+    # The version exists from GitHub's created_at; updated_at is the source's last edit, and deleted_at is not stored.
+    EVENT_TIME: ClassVar[Any] = Interval("created_at", "created")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.surface": "packages",

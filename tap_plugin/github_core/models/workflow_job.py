@@ -13,6 +13,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -43,6 +44,8 @@ class WorkflowJob(BaseModel):
         "and checkout ref. The declaration, not the execution."
     )
     ENTITY_ICON: ClassVar[str] = "workflow-job"
+    # A job as written in a workflow file; nothing in it is a time the source states.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.surface": "actions",

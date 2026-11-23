@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -56,6 +57,8 @@ class StatusCheck(BaseModel):
         "job produces. Where the gate and the machinery meet."
     )
     ENTITY_ICON: ClassVar[str] = "status-check"
+    # A required check context by name; it has no time of its own.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     # Owner-scoped, no repo: an organization requirement spans repositories.
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "declaration",

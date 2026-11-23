@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -40,6 +41,8 @@ class CommitObservation(BaseModel):
         "to, and its signature verification verdict. The object a required-signatures rule checks."
     )
     ENTITY_ICON: ClassVar[str] = "git-commit"
+    # GitHub's verdict on a commit; the commit's own times live on git_core's commit, and this model stores none.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "declaration",
         "git.host": "github.com",

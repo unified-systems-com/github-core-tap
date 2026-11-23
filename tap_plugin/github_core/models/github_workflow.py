@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -32,6 +33,8 @@ class GithubWorkflow(BaseModel):
     ENTITY_NAME: ClassVar[str] = "GitHub Workflow"
     ENTITY_DESCRIPTION: ClassVar[str] = "A GitHub Actions workflow definition."
     ENTITY_ICON: ClassVar[str] = "github-workflow"
+    # No source time is stored: GitHub's workflow created_at is not kept; `configuration` is the parsed YAML.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.surface": "actions",

@@ -11,6 +11,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import NO_EVENT_TIME
 from tap_grid.models import BaseModel
 
 
@@ -44,6 +45,8 @@ class GithubRuleset(BaseModel):
         "the rules it imposes, and whether its bypass list could be read at all."
     )
     ENTITY_ICON: ClassVar[str] = "github-ruleset"
+    # No source time is stored: the ruleset's created_at is not kept; its JSON fields are conditions and rules.
+    EVENT_TIME: ClassVar[Any] = NO_EVENT_TIME
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "github.observation": "declaration",
         "git.host": "github.com",

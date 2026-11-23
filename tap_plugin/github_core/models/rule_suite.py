@@ -18,6 +18,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Moment
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import DATE_TIME, DATE_TIME_VALIDATION
 
@@ -44,6 +45,8 @@ class RuleSuite(BaseModel):
         "and which controls were bypassed rather than satisfied."
     )
     ENTITY_ICON: ClassVar[str] = "github-rule-suite"
+    # One push evaluated against rulesets: it happened at GitHub's pushed_at.
+    EVENT_TIME: ClassVar[Any] = Moment("pushed_at", "occurred")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         # An execution, not a declaration: this is something that HAPPENED, like a run.
         "github.observation": "execution",

@@ -9,6 +9,7 @@ from typing import Any, ClassVar
 
 from django.db import models
 
+from tap_grid.event_time import Moment
 from tap_grid.models import BaseModel
 from tap_plugin.github_core.models.schema_types import timestamp_validations, timestamps
 
@@ -43,6 +44,8 @@ class GithubRelease(BaseModel):
         "who published it, and the assets attached."
     )
     ENTITY_ICON: ClassVar[str] = "github-release"
+    # Declared at published_at: GitHub documents a release's created_at as its commit's date, not the release's.
+    EVENT_TIME: ClassVar[Any] = Moment("published_at", "published")
     DEFAULT_DIMENSIONS: ClassVar[dict[str, str]] = {
         "git.host": "github.com",
         "github.surface": "releases",
