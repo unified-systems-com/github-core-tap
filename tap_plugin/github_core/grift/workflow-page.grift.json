@@ -1,6 +1,22 @@
 {
   "metadata": {
-    "grift_version": "0"
+    "grift_version": "1",
+    "spine_version": 1,
+    "type_versions": {
+      "USES_DEFAULT_ELEVATION": 1,
+      "USES_ELEVATION": 1,
+      "USES_LAYOUT": 1,
+      "USES_PANEL": 1,
+      "USES_PROJECTION": 1,
+      "USES_SEARCH": 1,
+      "batch": 1,
+      "elevation": 1,
+      "layout": 1,
+      "page": 1,
+      "panel": 1,
+      "projection": 1,
+      "search": 1
+    }
   },
   "_reserved": {},
   "batches": [

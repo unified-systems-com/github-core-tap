@@ -445,7 +445,11 @@ def _inventory(raw: bytes) -> None:
     from tap_grid.grift import grift_import
     from tap_grid.services import create_node
 
-    host = create_node("computing_core__host", {"realm": "assert", "stable_id": "tap-web-image", "kind": "container"})
+    host = create_node(
+        "computing_core__host",
+        {"stable_id": "tap-web-image", "kind": "container"},
+        dimensions={"tap.computing.host_type": "assert"},
+    )
     assert host.success, host.errors
     batch = parse_cyclonedx(raw, host_id=str(host.entity_id), verification=VERIFIED)
     result = grift_import(

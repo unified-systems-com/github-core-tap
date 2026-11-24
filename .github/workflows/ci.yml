@@ -30,6 +30,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@2338a593f89afde5db271d2fad4572539babef1f
+    # Pinned to core tag v0.4.9.
+    uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@86f9d918ad5ac2cce52225d3c5a4dd0596aab68e
     with:
       plugin_slug: github_core
