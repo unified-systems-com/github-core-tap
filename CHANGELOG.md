@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.2](https://github.com/unified-systems-com/github-core-tap/compare/v0.14.1...v0.14.2) (2026-11-24)
+
+
+### Features
+
+* declare event time for every model (tap v0.4.7) ([deaa804](https://github.com/unified-systems-com/github-core-tap/commit/deaa804d4ee196157e6458e4477170dbab8e9179))
+* declare event time for every model (tap v0.4.7) ([3942027](https://github.com/unified-systems-com/github-core-tap/commit/39420275e0bcb09b8b8fb2269e7e43f92fad1afb))
+
 ## [0.14.1](https://github.com/unified-systems-com/github-core-tap/compare/v0.14.0...v0.14.1) (2026-11-16)
 
 
