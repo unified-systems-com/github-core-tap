@@ -1,5 +1,7 @@
 manifest_version = "0"
 plugin_version = "0.14.3" # x-release-please-version
+# 0.5.0 (2026-11-25): the first core release with event time on history rows (tap_grid 0024_history_event_time),
+# which migration 0024_history_event_time depends on.
 # 0.4.7 (2026-11-23): the first core release carrying tap_grid.event_time (Moment, Interval,
 # NO_EVENT_TIME, the JSON member path and declaration_problems) that every model's EVENT_TIME
 # imports (req-grid-entity-event-time).
@@ -11,7 +13,7 @@ plugin_version = "0.14.3" # x-release-please-version
 # tap#652 the reconcile verb; github-core#151). 0.1.6, the release before it, refuses the
 # [falsifiers] key at manifest parse; 0.1.7 was never cut — the natural-key change bumped the
 # minor, so the floor names the release that exists.
-requires_tap = ">=0.4.9"
+requires_tap = ">=0.5.0"  # 0024_history_event_time depends on tap_grid 0024 (core v0.5.0: event time on history rows)
 slug = "github_core"
 name = "TAP GitHub Core"
 description = "GitHub Actions models — the pipeline as declared (workflows, jobs, rulesets, environments) and as run (runs, jobs, runners, caches) — and what it produces (releases, artifacts, packages)."
@@ -128,4 +130,4 @@ workflow-page = "grift/workflow-page.grift.json"
 [[boot.records]]
 name = "ci"
 description = "RESERVED NAME (req-boot-bootstrap-ci-record): the stack this plugin's own tests run in — depends_on closure + self, offline, credential-free. The consumer flips self to editable."
-sha256 = "3534a56f765ca8bde702d124e9cc38d46d16c0b3a513b010bf539d6237fb3a8e"
+sha256 = "05340b3a5bae4e3fbda40b544fc6260f0be3bf1c1b8a8ce96de596f09f0392f3"
