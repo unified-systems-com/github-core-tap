@@ -13,7 +13,15 @@ them matter because refs are batch-local (Issue# 162):
    endpoints are real ids READ BACK OFF THE GRID after batch 2 committed — never refs.
 
 Document shape per `tap_grid/schemas/grift-document.schema.json`:
-  {metadata: {grift_version}, _reserved: {}, batches: [GriftBatchContainer]}
+  {metadata: {grift_version, spine_version, type_versions}, _reserved: {}, batches: [GriftBatchContainer]}
+
+The header is GRIFT format "1", and it is core's to write: :func:`with_header` sets it from
+`tap_grid.grift.upgrade.build_header`, which reads the spine version and every carried type's
+version off the grid. That needs Django and a database, and `assemble_batch` is also called by the
+Django-free `sbom_vulnerability_grift` (req-github-core-sbom-vulnerabilities-1), so assembly leaves
+``metadata`` empty and each collector's `submit_grift` stamps the header on the finished document.
+An unstamped document fails the schema (``grift_version`` is required) instead of importing as
+format "0", which core 0.5.0 refuses by default.
 """
 
 from __future__ import annotations
@@ -25,7 +33,18 @@ from uuid import UUID, uuid7
 from .identity import Ref
 
 COLLECTION_FORMAT = "tap.github_core.collection-v0"
-_GRIFT_VERSION = "0"
+
+
+def with_header(document: dict[str, Any]) -> dict[str, Any]:
+    """Set ``document["metadata"]`` to core's format "1" header for it, and return the document.
+
+    Call it once the document's batches are complete: the header names every type they carry.
+    Needs Django and the database, so the import is local and the pure assembly path never runs it.
+    """
+    from tap_grid.grift.upgrade import build_header
+
+    document["metadata"] = build_header(document)
+    return document
 
 
 def _addressed(value: UUID | Ref | str) -> dict[str, str]:
@@ -121,7 +140,7 @@ def assemble_batch(
     edges: list[dict[str, Any]],
     batch_dimensions: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Wrap nodes + edges into a single-batch GRIFT v0 document."""
+    """Wrap nodes + edges into a single-batch GRIFT document, its header left for :func:`with_header`."""
     moment = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     batch = {
         "batch_entity": {
@@ -144,7 +163,7 @@ def assemble_batch(
         "edges": edges,
     }
     return {
-        "metadata": {"grift_version": _GRIFT_VERSION},
+        "metadata": {},
         "_reserved": {},
         "batches": [batch],
     }

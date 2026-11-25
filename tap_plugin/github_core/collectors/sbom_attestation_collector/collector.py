@@ -24,6 +24,7 @@ from tap_cares.exceptions import SecretError
 
 from ..github_collector.api_client import GithubClient
 from ..github_collector.auth import GithubAuth
+from ..github_collector.batch import with_header
 from ..github_collector.secret import GITHUB_SECRET_REF, api_base_url, resolve_github_secret
 from .config import CONFIG_FILENAME, SbomAttestationConfig, TrustedSigner, load_config, load_trusted_signers
 from .errors import SbomAttestationError
@@ -133,6 +134,13 @@ class SbomAttestationCollector(CollectorBase):
                 return stop("The sigstore_core verifier is unavailable.")
             checks.append(check_pass("SIGSTORE_CORE_PRESENT", "sigstore_core DSSE verification is installed.", docs=_DOCS))
         return stop("SBOM attestation collector is ready.")
+
+    def submit_grift(self, document: dict[str, Any], **kwargs: Any) -> Any:
+        """Stamp core's format "1" header on the finished document, then import it as every collector does.
+
+        `sbom_vulnerability_grift` is Django-free and leaves the header empty; the header reads the grid.
+        """
+        return super().submit_grift(with_header(document), **kwargs)
 
     def _abort(self, site: str, code: str, message: str) -> None:
         self.record_error(site, code, message)
