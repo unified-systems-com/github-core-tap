@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.3](https://github.com/unified-systems-com/github-core-tap/compare/v0.14.2...v0.14.3) (2026-11-25)
+
+
+### Bug Fixes
+
+* **grift:** collectors stamp core's format "1" header instead of writing "0" ([39323eb](https://github.com/unified-systems-com/github-core-tap/commit/39323eb52a332dc891e87dc99131b96c276ad162))
+* **grift:** collectors stamp core's format "1" header instead of writing "0" ([15bd1cf](https://github.com/unified-systems-com/github-core-tap/commit/15bd1cf491b7fc5b2393c4e401353ebcbe8e2d12))
+
 ## [0.14.2](https://github.com/unified-systems-com/github-core-tap/compare/v0.14.1...v0.14.2) (2026-11-24)
 
 
