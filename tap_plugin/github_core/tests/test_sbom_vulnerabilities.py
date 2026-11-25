@@ -436,13 +436,16 @@ class TestRefusals:
 
 
 def _import(document: dict, mode: str = "strict"):
+    """Import the document with the header the submitting collector stamps on it (`batch.with_header`)."""
     from tap_grid.grift import grift_import
+    from tap_grid.grift.upgrade import build_header
 
-    return grift_import(document, dangling_edge_mode=mode)
+    return grift_import({**document, "metadata": build_header(document)}, dangling_edge_mode=mode)
 
 
 def _inventory(raw: bytes) -> None:
     from tap_grid.grift import grift_import
+    from tap_grid.grift.upgrade import build_header
     from tap_grid.services import create_node
 
     host = create_node(
@@ -452,13 +455,13 @@ def _inventory(raw: bytes) -> None:
     )
     assert host.success, host.errors
     batch = parse_cyclonedx(raw, host_id=str(host.entity_id), verification=VERIFIED)
-    result = grift_import(
-        {
-            "metadata": {"grift_version": "0"},
-            "_reserved": {},
-            "batches": [batch.as_grift_batch(str(uuid.uuid4()), name="inventory", source="test")],
-        }
-    )
+    document = {
+        "metadata": {},
+        "_reserved": {},
+        "batches": [batch.as_grift_batch(str(uuid.uuid4()), name="inventory", source="test")],
+    }
+    document["metadata"] = build_header(document)
+    result = grift_import(document)
     assert result.success, [e.message for e in result.errors[:5]]
 
 
@@ -495,6 +498,19 @@ class TestThroughTheImporter:
             "POP3 command injection in user-controlled commands",
         )
         assert vulnerability.record_url == "https://www.cve.org/CVERecord?id=CVE-2025-15367"
+
+    @pytest.mark.spec("req-github-core-sbom-vulnerabilities-9")
+    def test_the_submitting_collector_stamps_cores_format_1_header(self, result):
+        """The pure builder leaves the header empty; `with_header` writes core's, never format "0"."""
+        from tap_plugin.github_core.collectors.github_collector.batch import with_header
+
+        from tap_grid.grift.upgrade import build_header
+
+        assert result.document["metadata"] == {}
+        stamped = with_header(json.loads(json.dumps(result.document)))
+        assert stamped["metadata"] == build_header(result.document)
+        assert stamped["metadata"]["grift_version"] == "1"
+        assert {FINDING, VULNERABILITY, SCANNER, CONCERNS, CARRIES, DETECTS} <= set(stamped["metadata"]["type_versions"])
 
     @pytest.mark.spec("req-github-core-sbom-vulnerabilities-9")
     def test_the_page_traversals_find_the_findings(self, raw, result):

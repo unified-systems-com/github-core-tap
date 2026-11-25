@@ -39,6 +39,7 @@ from tap_plugin.github_core.collectors.github_collector.identity import (
 )
 
 from tap_grid.grift import grift_import
+from tap_grid.grift.upgrade import build_header
 from tap_grid.registry import get_model_class
 
 from .envelopes import edge_from, edge_to, envelope_key
@@ -633,7 +634,7 @@ def _import_node(envelope: dict[str, Any]) -> str:
     payload would prove its own document resolves, not the collector's.
     """
     doc = {
-        "metadata": {"grift_version": "0"},
+        "metadata": {},
         "_reserved": {},
         "batches": [
             {
@@ -655,6 +656,7 @@ def _import_node(envelope: dict[str, Any]) -> str:
             }
         ],
     }
+    doc["metadata"] = build_header(doc)
     result = grift_import(doc)
     assert result.success, result.errors
     return str(result.imported_batches[0].resolved_refs[envelope["entity"]["ref"]])

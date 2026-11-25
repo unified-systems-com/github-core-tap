@@ -51,6 +51,7 @@ from .batch import (
     envelope_key,
     edge_envelope,
     node_envelope,
+    with_header,
 )
 from .enrichment import resolve_links
 from .graphql_client import _ENVIRONMENT_PAGE_SIZE, GithubGraphQLClient, GithubGraphQLError
@@ -925,6 +926,13 @@ class GithubCollector(CollectorBase):
         if not retries and not degraded:
             return ""
         return f"; {retries} retr{'y' if retries == 1 else 'ies'}, {degraded} surface{'s' if degraded != 1 else ''} degraded"
+
+    def submit_grift(self, document: dict[str, Any], **kwargs: Any) -> Any:
+        """Stamp core's format "1" header on the finished document, then import it as every collector does.
+
+        `assemble_batch` leaves the header empty because it reads the grid (see `batch.with_header`).
+        """
+        return super().submit_grift(with_header(document), **kwargs)
 
     def run(self) -> None:
         self.record_info(

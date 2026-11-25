@@ -11,6 +11,10 @@ It is the entry point a collector calls. It imports no Django, opens no file or 
 document: the caller verifies an attestation, reads the bytes and hands over the parsed batches
 (computing_core owns that logic; this module owns the compliance vocabulary it lands in).
 
+The document's ``metadata`` is left empty: its GRIFT format "1" header is core's ``build_header``, which
+reads the spine and type versions off the grid, so the submitting collector stamps it
+(``batch.with_header``, called from ``SbomAttestationCollector.submit_grift``).
+
 **Identity.** A finding is ``("github_core", "<image>#sbom#<vuln_id>#<ecosystem>/<name>@<version>")``; the
 ``#sbom#`` segment keeps it apart from the repository-scoped keys of Dependabot and code-scanning findings
 (``identity.sbom_finding_source_key``). A vulnerability is its ``vuln_id`` alone, so it is the same node the
