@@ -1,5 +1,5 @@
 manifest_version = "0"
-plugin_version = "0.14.3" # x-release-please-version
+plugin_version = "0.14.4" # x-release-please-version
 # 0.5.0 (2026-11-25): the first core release with event time on history rows (tap_grid 0024_history_event_time),
 # which migration 0024_history_event_time depends on.
 # 0.4.7 (2026-11-23): the first core release carrying tap_grid.event_time (Moment, Interval,
