@@ -1,5 +1,5 @@
 manifest_version = "0"
-plugin_version = "0.14.2" # x-release-please-version
+plugin_version = "0.14.3" # x-release-please-version
 # 0.4.7 (2026-11-23): the first core release carrying tap_grid.event_time (Moment, Interval,
 # NO_EVENT_TIME, the JSON member path and declaration_problems) that every model's EVENT_TIME
 # imports (req-grid-entity-event-time).
