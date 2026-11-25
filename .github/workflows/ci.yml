@@ -30,7 +30,9 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    # Pinned to core tag v0.4.9.
-    uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@86f9d918ad5ac2cce52225d3c5a4dd0596aab68e
+    # Pinned to unified-systems-com/tap v0.5.0 (af6c940e52bc68b50add3b9ff63e600da8265e58), the release this plugin's
+    # 0024_history_event_time migration targets; plugin-ci's harness is the floor and runs `makemigrations --check`
+    # over the plugin's models. Renovate does not track this pin: move it on purpose.
+    uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@af6c940e52bc68b50add3b9ff63e600da8265e58
     with:
       plugin_slug: github_core
