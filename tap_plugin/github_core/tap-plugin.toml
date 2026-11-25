@@ -128,4 +128,4 @@ workflow-page = "grift/workflow-page.grift.json"
 [[boot.records]]
 name = "ci"
 description = "RESERVED NAME (req-boot-bootstrap-ci-record): the stack this plugin's own tests run in — depends_on closure + self, offline, credential-free. The consumer flips self to editable."
-sha256 = "3534a56f765ca8bde702d124e9cc38d46d16c0b3a513b010bf539d6237fb3a8e"
+sha256 = "7026bb37c46e2a8769162b15675419b41494b28cd24579c2cd7f92c754e07e74"
